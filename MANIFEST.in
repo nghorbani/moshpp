@@ -1,0 +1,12 @@
+recursive-include  support_data *.npz
+recursive-include  support_data *.ply
+recursive-include  support_data/conf *.yaml
+include *.txt
+recursive-include src *.cpp
+recursive-include src *.h
+recursive-include src *.md
+recursive-include src *.py
+recursive-include src *.pyx
+recursive-include src *.txt
+recursive-include src *.whl
+recursive-include src Makefile

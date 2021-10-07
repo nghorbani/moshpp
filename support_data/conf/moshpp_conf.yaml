@@ -1,0 +1,119 @@
+mocap:
+  fname: ???
+  ds_name: ${resolve_mocap_ds_name:${mocap.fname}}
+  subject_name: ${resolve_mocap_subject:${mocap.fname}}
+  basename: ${resolve_mocap_basename:${mocap.fname}}
+  unit: mm # default unit for c3d is mm
+  rotate:
+  exclude_markers:
+  exclude_marker_types:
+    - face
+  only_markers:
+  start_fidx: 0
+  end_fidx: -1
+  ds_rate: 1
+
+surface_model:
+  type: smplx
+  fname: ${dirs.support_base_dir}/${surface_model.type}/${surface_model.gender}/model.pkl
+  dmpl_fname: ${dirs.support_base_dir}/${surface_model.type}/${surface_model.gender}/dmpl.pkl
+  num_betas: 16
+  num_dmpls: 8
+  dof_per_hand: 24
+  num_expressions: 80
+  use_hands_mean: true
+  gender: ${resolve_gender:${mocap.fname},error} #/male/female/neutral
+
+moshpp:
+  head_marker_corr_fname: ${dirs.support_base_dir}/ssm_head_marker_corr.npz
+  pose_body_prior_fname: ${dirs.support_base_dir}/${surface_model.type}/pose_body_prior.pkl
+  pose_hand_prior_fname: ${dirs.support_base_dir}/${surface_model.type}/pose_hand_prior.npz
+
+  wrist_markers_on_stick: false
+
+  optimize_fingers: false
+  optimize_face: false
+  optimize_toes: false
+  optimize_betas: true
+  optimize_dynamics: false
+
+  v_template_fname: #v_template to be used for the surface model
+  betas_fname:
+
+  separate_types:
+    - 'body'
+
+  stagei_frame_picker:
+    type: random_strict
+    seed: 100
+    num_frames: 12
+    least_avail_markers: 0.5 # [0,1.] with 1 being all the marker available
+    stagei_mocap_fnames: # sequences for stagei of mosh
+
+  verbosity: 1
+
+dirs:
+  support_base_dir: /ps/project/soma/support_files/release_soma
+  work_base_dir: ???
+
+  marker_layout_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.ds_name}_${surface_model.type}.json
+
+  stagei_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.subject_name}/${surface_model.gender}_stagei.pkl
+  stageii_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.subject_name}/${mocap.basename}_stageii.pkl
+  log_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.subject_name}/${mocap.basename}.log
+
+opt_settings:
+  weights_type: ${surface_model.type}
+  weights: ${opt_weights[${opt_settings.weights_type}]}
+
+  maxiter: 100
+  stagei_lr: 1e-3
+  extra_initial_rigid_adjustment: false
+
+opt_weights:
+  smplx:
+    stagei_wt_poseH: 3.0
+    stagei_wt_poseF: 3.
+    stagei_wt_expr: 34.
+    stagei_wt_pose: 3.
+    stagei_wt_poseB: 3.
+    stagei_wt_init_finger_left: 400.0
+    stagei_wt_init_finger_right: 400.0
+    stagei_wt_betas: 10.
+    stagei_wt_init: 300
+    stagei_wt_data: 75.
+    stagei_wt_surf: 10000.
+    stagei_wt_annealing: [ 1., .5, .25, .125 ]
+    stageii_wt_data: 400
+    stageii_wt_velo: 2.5
+    stageii_wt_dmpl: 1.0
+    stageii_wt_expr: 1.0
+    stageii_wt_poseB: 1.6
+    stageii_wt_poseH: 1.0
+    stageii_wt_poseF: 1.0
+    stageii_wt_annealing: 2.5
+  smplx_grab_vtemplate:
+    stagei_wt_surf: 1000.0
+    #    stagei_wt_surf_body: 1000.0 # when v_template or betas is given
+    stagei_wt_init_hand: 347.36
+    stagei_wt_init_finger_left: 789.47
+    stagei_wt_init_finger_right: 789.47
+    stagei_wt_init_head: 220.69
+    stagei_wt_init_face: 775.86
+    stagei_wt_poseH: 5.31 # 6.87
+    stagei_wt_poseF: 28.97
+    stagei_wt_expr: 6.99
+    stagei_wt_pose: 3.00
+    stagei_wt_poseB: 3.00
+    stagei_wt_betas: 10.00
+    stagei_wt_init: 300.00
+    stagei_wt_data: 75.00
+    stagei_wt_annealing: [ 1., .5, .25, .125 ]
+    stageii_wt_data: 400
+    stageii_wt_velo: 2.5
+    stageii_wt_dmpl: 1.0
+    stageii_wt_expr: 0.9 # 1.21
+    stageii_wt_poseB: 1.6
+    stageii_wt_poseH: 0.4
+    stageii_wt_poseF: 15.0 # 26.31
+    stageii_wt_annealing: 2.5

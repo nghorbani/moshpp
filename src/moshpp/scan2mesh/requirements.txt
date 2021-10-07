@@ -1,0 +1,7 @@
+cython
+chumpy
+numpy
+packages/psbody_smpl-0.1b4-cp27-cp27mu-linux_x86_64.whl 
+packages/psbody_mesh-0.1-cp27-cp27mu-linux_x86_64.whl 
+
+

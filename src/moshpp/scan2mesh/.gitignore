@@ -1,0 +1,12 @@
+*pyc
+
+
+scan2mesh\.egg-info/
+\.idea/
+
+dist/
+
+build/
+mesh_distance/sample2meshdist.so
+
+*.so
