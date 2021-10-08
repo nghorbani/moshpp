@@ -23,12 +23,12 @@ The current MoSh++ code works with the following models:
 - [SMPL-X](https://smpl-x.is.tue.mpg.de/)
 - [MANO](http://mano.is.tue.mpg.de/)
 - [Objects](https://grab.is.tue.mpg.de/)
-- [SMALL](https://smal.is.tue.mpg.de/)
+- [SMAL](https://smal.is.tue.mpg.de/)
 
 ## Installation
 
 
-The Current repository requires Python 3.7 and chumpy; a CPU based auto-differentiation package.
+The current repository requires Python 3.7 and chumpy; a CPU based auto-differentiation package.
 This package is assumed to be used along with [SOMA](https://github.com/nghorbani/soma), the mocap auto-labeling package.
 Please install MoSh++ inside the conda environment of SOMA.
 Clone the moshpp repository, and run the following from the root directory:
