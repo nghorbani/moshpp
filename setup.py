@@ -39,7 +39,10 @@ setup(name='moshpp',
       package_dir={'': 'src'},
       include_package_data=True,
       data_files=[('moshpp/support_data', glob('support_data/*.*')),
-                  ('moshpp/support_data/conf', glob('support_data/conf/*.*'))],
+                  ('moshpp/support_data/conf', glob('support_data/conf/*.*')),
+                  ('moshpp/scan2mesh/mesh_distance', glob('src/moshpp/scan2mesh/mesh_distance/*.so')),
+
+                  ],
 
       author=['Nima Ghorbani', ],
       author_email=['nghorbani@tue.mpg.de'],

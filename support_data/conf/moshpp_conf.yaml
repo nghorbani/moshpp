@@ -9,9 +9,9 @@ mocap:
   exclude_marker_types:
     - face
   only_markers:
-  start_fidx: 0
-  end_fidx: -1
-  ds_rate: 1
+  start_fidx: 0 # start frame id
+  end_fidx: -1 # end frame id
+  ds_rate: 1 #down-sampling rate
 
 surface_model:
   type: smplx
