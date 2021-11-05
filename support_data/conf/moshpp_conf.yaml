@@ -96,6 +96,7 @@ opt_weights:
     stagei_wt_surf: 1000.0
     #    stagei_wt_surf_body: 1000.0 # when v_template or betas is given
     stagei_wt_init_hand: 347.36
+    stagei_wt_init_finger: 789.47
     stagei_wt_init_finger_left: 789.47
     stagei_wt_init_finger_right: 789.47
     stagei_wt_init_head: 220.69

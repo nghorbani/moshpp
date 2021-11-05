@@ -117,3 +117,5 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
+src/moshpp/scan2mesh/mesh_distance/sample2meshdist.cpp

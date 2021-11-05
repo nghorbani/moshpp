@@ -317,9 +317,9 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
         logger.debug(wt_messages)
         logger.debug(
-            f'stagei_wt_init for different marker types {", ".join(["{} = {:.02f}".format(k, v) for k, v in wt_init.items()])}: ')
+            f'stagei_wt_init for different marker types {", ".join([f"{k} = {v:.02f}" for k, v in wt_init.items()])}: ')
         logger.debug(
-            f'stagei_wt_surf for different marker types {", ".join(["{} = {:.02f}".format(k, v) for k, v in wt_surf.items()])}')
+            f'stagei_wt_surf for different marker types {", ".join([f"{k} = {v:.02f}" for k, v in wt_surf.items()])}')
 
         # opt_objs.update({'data_%s' % k: data_obj[k] * wt_data[k] for k in can_meta['mrk_ids']})
         opt_objs['data'] = data_obj * wt_data
@@ -340,7 +340,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                                                                                   stagei_wts.stagei_wt_init * wt_anneal_factor)
 
         else:
-            opt_objs.update({'init_%s' % k: init_loss[marker_type_mask] * wt_init[k] for k, marker_type_mask in
+            opt_objs.update({f'init_{k}': init_loss[marker_type_mask] * wt_init[k] for k, marker_type_mask in
                              marker_meta['marker_type_mask'].items()})
 
         if len(v_betas): opt_objs['beta'] = can_model.priors['betas'].ravel() * wt_beta
@@ -359,8 +359,8 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                 opt_objs['expr'] = ch.concatenate(v_face_exp) * wt_expr
 
             poses = pose_root_ids + pose_body_ids + pose_finger_ids + pose_face_ids
-            if len(pose_body_ids) and not cfg.moshpp.optimize_toes: poses = list(
-                set(poses).difference(set(pose_ids[30:36])))
+            if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
+                poses = list(set(poses).difference(set(pose_ids[30:36])))
             poses = [model.pose[poses] for model in opt_models]
             free_vars = poses + trans + v_face_exp + v_betas + [markers_latent]
         else:
@@ -371,15 +371,15 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
             free_vars = poses + trans + v_betas + [markers_latent]  # [tc.markers_latent[:len(markers_latent_B)]]
 
         logger.debug('Init. loss values: {}'.format(' | '.join(
-            ['%s = %2.2e' % (k, np.sum(opt_objs[k].r ** 2)) for k in sorted(opt_objs)])))
+            [f'{k} = {np.sum(opt_objs[k].r ** 2):2.2e}' for k in sorted(opt_objs)])))
         ch.minimize(fun=opt_objs, x0=free_vars,
                     callback=on_step,
                     method='dogleg',
                     options={'e_3': cfg.opt_settings.stagei_lr,
                              'delta_0': .5, 'disp': None,
                              'maxiter': cfg.opt_settings.maxiter})
-        logger.debug('Final loss values: %s' % ' | '.join(
-            ['%s = %2.2e' % (k, np.sum(opt_objs[k].r ** 2)) for k in sorted(opt_objs)]))
+        logger.debug("Final loss values: {}".format(' | '.join(
+            [f'{k} = {np.sum(opt_objs[k].r ** 2):2.2e}' for k in sorted(opt_objs)])))
 
     # Saving all values from the optimization process, (sum of least squares)
     stagei_errs = {k: np.sum(obj_val.r ** 2) for k, obj_val in opt_objs.items()}
@@ -401,7 +401,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                             'markers_latent_all_vids': markers_latent_all_vids,
                             'stagei_markers_sim_all': [m.r for m in markers_sim_all],
                             'stagei_markers_sim': [m.r for m in markers_sim],
-                            'stagei_markers_obs': [m.r for m in markers_obs],
+                            'stagei_markers_obs': [m for m in markers_obs],
                             'stagei_labels_obs': labels_obs,
                             }
 

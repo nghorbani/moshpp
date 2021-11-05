@@ -1,6 +1,7 @@
 recursive-include  support_data *.npz
 recursive-include  support_data *.ply
 recursive-include  support_data/conf *.yaml
+recursive-include  src/moshpp/scan2mesh/mesh_distance/*.so
 include *.txt
 recursive-include src *.cpp
 recursive-include src *.h
