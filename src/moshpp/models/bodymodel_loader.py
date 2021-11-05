@@ -82,7 +82,7 @@ def load_moshpp_models(surface_model_fname,
                        use_hands_mean=False,
                        dof_per_hand=12,
                        v_template_fname=None,
-                       num_beta_sharenum_total_attention_feats=12):
+                       num_beta_shared_models=12):
     """
     load model
     """
@@ -90,8 +90,8 @@ def load_moshpp_models(surface_model_fname,
     if surface_model_type == 'object':
         from moshpp.models.object_model import RigidObjectModel
         can_model = RigidObjectModel(ply_fname=surface_model_fname)
-        beta_sharenum_total_attention_feats = [RigidObjectModel(ply_fname=surface_model_fname) for _ in
-                                               range(num_beta_sharenum_total_attention_feats)]
+        beta_shared_models = [RigidObjectModel(ply_fname=surface_model_fname) for _ in
+                                               range(num_beta_shared_models)]
     else:
         from moshpp.prior.gmm_prior_ch import create_gmm_body_prior
 
@@ -108,10 +108,9 @@ def load_moshpp_models(surface_model_fname,
                   }
         can_model.priors = priors
 
-        beta_sharenum_total_attention_feats = [SmplModelLBS(pose=ch.array(np.zeros(can_model.pose.size)),
-                                                            trans=ch.array(np.zeros(can_model.trans.size)),
-                                                            betas=can_model.betas,
-                                                            temp_model=can_model) for _ in
-                                               range(num_beta_sharenum_total_attention_feats)]
+        beta_shared_models = [SmplModelLBS(pose=ch.array(np.zeros(can_model.pose.size)),
+                                            trans=ch.array(np.zeros(can_model.trans.size)),
+                                            betas=can_model.betas,
+                                            temp_model=can_model) for _ in range(num_beta_shared_models)]
 
-    return can_model, beta_sharenum_total_attention_feats
+    return can_model, beta_shared_models

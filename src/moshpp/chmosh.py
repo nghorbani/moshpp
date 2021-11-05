@@ -129,7 +129,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
     can_model, opt_models = load_moshpp_models(surface_model_fname=cfg.surface_model.fname,
                                                surface_model_type=cfg.surface_model.type,
-                                               num_beta_sharenum_total_attention_feats=cfg.moshpp.stagei_frame_picker.num_frames,
+                                               num_beta_shared_models=cfg.moshpp.stagei_frame_picker.num_frames,
                                                pose_hand_prior_fname=cfg.moshpp.pose_hand_prior_fname,
                                                pose_body_prior_fname=cfg.moshpp.pose_body_prior_fname,
                                                use_hands_mean=cfg.surface_model.use_hands_mean,
@@ -425,7 +425,7 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
 
     can_model, opt_models = load_moshpp_models(surface_model_fname=cfg.surface_model.fname,
                                                surface_model_type=cfg.surface_model.type,
-                                               num_beta_sharenum_total_attention_feats=1,  # one frame per opt step
+                                               num_beta_shared_models=1,  # one frame per opt step
                                                pose_hand_prior_fname=cfg.moshpp.pose_hand_prior_fname,
                                                pose_body_prior_fname=cfg.moshpp.pose_body_prior_fname,
                                                use_hands_mean=cfg.surface_model.use_hands_mean,

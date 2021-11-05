@@ -34,7 +34,7 @@
 SMPL fitting wit fast derivatives
 ---------------------------------
 """
-
+import os.path  as osp
 import pickle as pickle
 
 import chumpy as ch
@@ -43,7 +43,7 @@ import scipy.sparse as sp
 from psbody.mesh import Mesh
 from psbody.smpl.fast_derivatives.smplcpp_chumpy import lbs_derivatives_wrt_pose, lbs_derivatives_wrt_shape
 from psbody.smpl.verts import verts_decorated
-
+from loguru import logger
 
 def load_surface_model(surface_model_fname,
                        pose_hand_prior_fname=None,
@@ -62,7 +62,9 @@ def load_surface_model(surface_model_fname,
     #     assert model_type in ['mano', 'smplx', 'smplh']
 
     if v_template_fname is not None:
+        assert osp.exists(v_template_fname), FileExistsError(v_template_fname)
         dd['v_template'] = Mesh(filename=v_template_fname).v
+        logger.info(f'Using v_template_fname: {v_template_fname}')
 
     if model_type in ['smplx', 'smplh']:
         pose_body_dof = njoint_parms - 90 + 3
@@ -167,12 +169,12 @@ class SmplModelLBS(ch.Ch):
             full_hand_pose = pose[self.pose_body_dof:(self.pose_body_dof + self.pose_hand_dof)].dot(
                 self.selected_components)
 
-            fullpose = ch.concatenate((pose[:self.pose_body_dof], self.hands_mean + full_hand_pose))
+            full_body_pose = ch.concatenate((pose[:self.pose_body_dof], self.hands_mean + full_hand_pose))
         else:
-            fullpose = self.pose
+            full_body_pose = self.pose
 
         self._inner_model = verts_decorated(trans=self.trans,
-                                            pose=fullpose,
+                                            pose=full_body_pose,
                                             v_template=temp_model.v_template,
                                             J=temp_model.J_regressor,
                                             weights=temp_model.weights,
@@ -201,7 +203,7 @@ class SmplModelLBS(ch.Ch):
         self.kintree_table = self._inner_model.kintree_table
         self.v_template = temp_model.v_template
         self.J_regressor = temp_model.J_regressor
-        self.fullpose = fullpose
+        self.fullpose = full_body_pose
 
         # required for betas derivatives
         self._inner_model.J_regressor = temp_model.J_regressor
