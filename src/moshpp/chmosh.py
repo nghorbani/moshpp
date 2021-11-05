@@ -171,23 +171,34 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     labels_obs = []
 
     for fIdx, obs_frame_data in enumerate(stagei_frames):
-        cur_frame = {}
-        for obs_label, obs_marker in obs_frame_data.items():
-            if np.any(np.isnan(obs_marker)): continue
-            if obs_label not in latent_labels: continue
-            assert obs_label not in cur_frame, ValueError(
-                'Repeated label ({}) in {}'.format(obs_label, stagei_frames[fIdx]))
-            latent_id = latent_labels.index(obs_label)
-            cur_frame[obs_label] = (obs_marker, markers_sim_all[fIdx][latent_id])
+        # cur_frame = {}
+        obs_labels = [k for k,v in obs_frame_data.items() if not np.any(np.isnan(v))]
 
-        markers_obs.append(ch.vstack([d[0] for d in cur_frame.values()]))
-        markers_sim.append(ch.vstack([d[1] for d in cur_frame.values()]))
-        labels_obs.append([d for d in cur_frame.keys()])
-        lm_diffs.append(ch.vstack([d[0] - d[1] for d in cur_frame.values()]))
+        common_labels = list(set(latent_labels).intersection(set(obs_labels)))
+        obf = np.vstack([obs_frame_data[k] for k in common_labels])
+        lm_ids = [latent_labels.index(k) for k in common_labels]
+        smf = markers_sim_all[fIdx][lm_ids]
 
-    data_obj = ch.vstack([ld for ld in lm_diffs])
+        markers_obs.append(obf)
+        markers_sim.append(smf)
+        labels_obs.append(common_labels)
+        lm_diffs.append(obf-smf)
 
-    logger.debug('Number of  available markers in each stagei selected frames: {}'.format(
+        # for obs_label, obs_marker in obs_frame_data.items():
+        #     if np.any(np.isnan(obs_marker)): continue
+        #     if obs_label not in latent_labels: continue
+        #     assert obs_label not in cur_frame, ValueError(
+        #         f'Repeated label ({obs_label}) in {stagei_frames[fIdx]}')
+        #     latent_id = latent_labels.index(obs_label)
+        #     cur_frame[obs_label] = (obs_marker, markers_sim_all[fIdx][latent_id])
+        # markers_obs.append([d[0] for d in cur_frame.values()])
+        # markers_sim.append([d[1] for d in cur_frame.values()])
+        # labels_obs.append([d for d in cur_frame.keys()])
+        # lm_diffs.append(ch.vstack([d[0] - d[1] for d in cur_frame.values()]))
+
+    data_obj = ch.vstack(lm_diffs)
+
+    logger.debug('Number of available markers in each stagei selected frames: {}'.format(
         ', '.join([f'(F{fIdx:02d}, {len(frame)})' for fIdx, frame in enumerate(markers_obs)])
     ))
 
