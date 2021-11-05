@@ -66,6 +66,24 @@ Please cite the following paper if you use this code directly or indirectly in y
 }
 ```
 
+Please consider citing the initial version of MoSh from Loper et al. Sig. Asia'14:
+
+```
+   @article{Loper:SIGASIA:2014,
+     title = {{MoSh}: Motion and Shape Capture from Sparse Markers},
+     author = {Loper, Matthew M. and Mahmood, Naureen and Black, Michael J.},
+     address = {New York, NY, USA},
+     publisher = {ACM},
+     month = nov,
+     number = {6},
+     volume = {33},
+     pages = {220:1--220:13},
+     journal = {ACM Transactions on Graphics, (Proc. SIGGRAPH Asia)},
+     url = {http://doi.acm.org/10.1145/2661229.2661273},
+     year = {2014},
+     doi = {10.1145/2661229.2661273}
+   }
+```
 ## License
 
 Software Copyright License for **non-commercial scientific research purposes**. Please read carefully
@@ -82,7 +100,10 @@ The software is compiled using CGAL sources following the license in [CGAL_LICEN
 
 ## Contact
 
-The code in this repository is developed by [Nima Ghorbani](https://nghorbani.github.io/) 
+The code in this repository is developed by 
+[Nima Ghorbani](https://nghorbani.github.io/),
+[Naureen Mahmood](https://ps.is.tuebingen.mpg.de/person/nmahmood), and 
+[Matthew Loper](https://ps.is.mpg.de/~mloper) 
 while at [Max-Planck Institute for Intelligent Systems, Tübingen, Germany](https://is.mpg.de/person/nghorbani).
 
 If you have any questions you can contact us at [amass@tuebingen.mpg.de](mailto:amass@tuebingen.mpg.de).
