@@ -26,6 +26,8 @@
 #
 # Code Developed by:
 # Nima Ghorbani <https://nghorbani.github.io/>
+# Naureen Mahmood <https://ps.is.tuebingen.mpg.de/person/nmahmood>
+# Matthew Loper <https://ps.is.mpg.de/~mloper>
 # While at Max-Planck Institute for Intelligent Systems, Tübingen, Germany
 #
 # 2021.06.18
@@ -327,11 +329,11 @@ class MocapSession(object):
 
 
 if __name__ == '__main__':
-    mocap_fname = '/ps/project/amass/MOCAP/Mixamo/Mixamo_c3d_cleared/Alec/1548Alec_bugbear_2_handed_overhead_bash__hgh_swinghgh_swing_BaseAnimation.c3d'
-    mocap = MocapSession(mocap_fname, mocap_unit='m', ignore_stared_labels=False)
+    mocap_fname = '/ps/project/amass/MOCAP/PS_MoCaps/SOMApp/SOMApp_shogun_reconstructed_mpc/210506_00155/SOMA_2.c3d'
+    mocap = MocapSession(mocap_fname, mocap_unit='mm', ignore_stared_labels=False)
     a = mocap.markers_asdict()
     print(a[0])
     print(mocap.labels)
     print(mocap.frame_rate)
-    print(mocap._marker_data['labels_perframe'])
+    # print(mocap._marker_data['labels_perframe'])
     mocap.play_mocap_trajectories(delay=0.1)

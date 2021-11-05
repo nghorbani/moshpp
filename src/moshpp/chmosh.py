@@ -26,7 +26,8 @@
 #
 # Code Developed by:
 # Nima Ghorbani <https://nghorbani.github.io/>
-# Naureen Mahmood <https://www.is.mpg.de/person/nmahmood>
+# Naureen Mahmood <https://ps.is.tuebingen.mpg.de/person/nmahmood>
+# Matthew Loper <https://ps.is.mpg.de/~mloper>
 # While at Max-Planck Institute for Intelligent Systems, Tübingen, Germany
 #
 # 2018.12.19
