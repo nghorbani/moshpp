@@ -225,4 +225,5 @@ general_labels_map = {'HEAD_TOP': 'ARIEL',
                       'MIDBACK': 'T8',
                       'MID_BACK': 'T8',
                       'ghost': 'nan',
-                      'NaN': 'nan'}
+                      'NaN': 'nan',
+                      }

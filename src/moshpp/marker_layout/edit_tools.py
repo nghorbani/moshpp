@@ -123,6 +123,9 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
     else:
         surface_model_type = d['surface_model_type']
 
+    logger.info(f'Loading marker layout: {marker_layout_fname}')
+    logger.info('Available marker tyes: {}'.format({markerset['type']:len(markerset['indices']) for markerset in sorted(d['markersets'], key=lambda a: a['type'])}))
+
     for markerset in sorted(d['markersets'], key=lambda a: a['type']):
         marker_type = markerset['type']
         if marker_type in exclude_marker_types:
@@ -138,7 +141,7 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
         for label in sorted(cur_marker_vids):
             if only_markers and label not in only_markers: continue
             if label in exclude_markers:
-                print('excluding label {}'.format(label))
+                logger.info(f'excluding label {label}')
             vid = cur_marker_vids[label]
             if label in marker_vids: raise ValueError(f'Label ({label}) is present in multiple occasions.')
             marker_vids[label] = vid
