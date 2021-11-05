@@ -295,7 +295,7 @@ all_marker_vids = {'smpl': {'ARIEL': 411,
                        "RCHEEK5": 8817,
                        "LCHEEK3": 9179,
                        "LCHEEK4": 2081,
-                       "LCHEEK5": 9168
+                       "LCHEEK5": 9168,
                    }
                    }
 
@@ -315,7 +315,7 @@ marker_type_labels = {
         "LMID1", "LMID2", "LMID3",
         "LPNK1", "LPNK2", "LPNK3",
         "LRNG1", "LRNG2", "LRNG3",
-        "LTHM1", "LTHM2", "LTHM3", "LTHM4"
+        "LTHM1", "LTHM2", "LTHM3", "LTHM4", "LTHM6"
     ],
     'finger_right': [
         "RIDX1", "RIDX2", "RIDX3",
