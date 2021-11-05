@@ -34,12 +34,15 @@ Please install MoSh++ inside the conda environment of SOMA.
 Clone the moshpp repository, and run the following from the root directory:
 
 ```
-sudo apt install libeigen3-dev
 sudo apt install libtbb-dev
 
 pip install -r requirements.txt
 
-cd src/moshpp/scan2mesh/mesh_distance
+cd src/moshpp/scan2mesh
+sudo apt install libeigen3-dev
+pip install -r requirements.txt
+2. sudo apt install libtbb-dev
+cd mesh_distance
 make
 
 cd ../../../..

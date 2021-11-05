@@ -5,3 +5,5 @@ matplotlib
 sklearn
 numpy
 loguru
+cython
+
