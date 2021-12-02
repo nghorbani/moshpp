@@ -5,5 +5,5 @@ matplotlib
 sklearn
 numpy
 loguru
-cython
+cython==0.29
 

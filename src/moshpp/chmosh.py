@@ -50,9 +50,8 @@ from moshpp.models.bodymodel_loader import load_moshpp_models
 from moshpp.rigid_transformations import perform_rigid_adjustment
 from moshpp.scan2mesh.mesh_distance_main import PtsToMesh
 from moshpp.tools.mocap_interface import MocapSession
+from moshpp.tools.visualization import visualize_pose_estimate, visualize_shape_estimate
 from moshpp.transformed_lm import TransformedCoeffs, TransformedLms
-from moshpp.visualization import visualize_shape_estimate, visualize_pose_estimate
-
 
 def prepare_mosh_markers_latent(can_model, marker_meta):
     can_v = can_model.r
@@ -122,7 +121,6 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                      exclude_marker_types=cfg.mocap.exclude_marker_types,
                                      only_markers=cfg.mocap.only_markers, labels_map=general_labels_map)
 
-    optimize_betas = cfg.moshpp.optimize_betas
 
     # 2. Loading SMPL models.
     # Canonical model is for canonical(a.k.a can space). the beta params of the can_model are ultimately used
@@ -138,6 +136,12 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                                v_template_fname=v_template_fname)
 
     assert marker_meta['surface_model_type'] == can_model.model_type == cfg.surface_model.type
+
+    optimize_betas = cfg.moshpp.optimize_betas and hasattr(can_model, 'betas')
+
+    if hasattr(can_model, 'betas'):
+        logger.debug(f'can_model.betas.shape: {can_model.betas.shape}')
+        logger.debug(f'opt_models[0].betas.shape: {opt_models[0].betas.shape}')
 
     if hasattr(can_model, 'betas') and (betas is not None):
         # if cfg.surface_model.type == 'smplx':
@@ -171,48 +175,36 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     markers_obs = []
     labels_obs = []
 
-    for fIdx, obs_frame_data in enumerate(stagei_frames):
+    for fidx, obs_frame_data in enumerate(stagei_frames):
         # cur_frame = {}
         obs_labels = [k for k,v in obs_frame_data.items() if not np.any(np.isnan(v))]
 
         common_labels = list(set(latent_labels).intersection(set(obs_labels)))
         obf = np.vstack([obs_frame_data[k] for k in common_labels])
         lm_ids = [latent_labels.index(k) for k in common_labels]
-        smf = markers_sim_all[fIdx][lm_ids]
+        smf = markers_sim_all[fidx][lm_ids]
 
         markers_obs.append(obf)
         markers_sim.append(smf)
         labels_obs.append(common_labels)
         lm_diffs.append(obf-smf)
 
-        # for obs_label, obs_marker in obs_frame_data.items():
-        #     if np.any(np.isnan(obs_marker)): continue
-        #     if obs_label not in latent_labels: continue
-        #     assert obs_label not in cur_frame, ValueError(
-        #         f'Repeated label ({obs_label}) in {stagei_frames[fIdx]}')
-        #     latent_id = latent_labels.index(obs_label)
-        #     cur_frame[obs_label] = (obs_marker, markers_sim_all[fIdx][latent_id])
-        # markers_obs.append([d[0] for d in cur_frame.values()])
-        # markers_sim.append([d[1] for d in cur_frame.values()])
-        # labels_obs.append([d for d in cur_frame.keys()])
-        # lm_diffs.append(ch.vstack([d[0] - d[1] for d in cur_frame.values()]))
 
-    data_obj = ch.vstack(lm_diffs)
+    data_obj = ch.vstack([ld for ld in lm_diffs])
 
     logger.debug('Number of available markers in each stagei selected frames: {}'.format(
-        ', '.join([f'(F{fIdx:02d}, {len(frame)})' for fIdx, frame in enumerate(markers_obs)])
-    ))
+        ', '.join([f'(F{fIdx:02d}, {len(frame)})' for fIdx, frame in enumerate(markers_obs)])))
 
     unavailable_latent_labels = list(set(latent_labels).difference(set(flatten_list(labels_obs))))
     if len(unavailable_latent_labels) != 0:
         logger.debug(
             f'Some labels in the provided marker layout did not exist in the observed frames: {unavailable_latent_labels}')
 
-    # Rigidly adjust poses/trans to fit bodies to landmarks
+    # Rigidly adjust pose_ids/trans to fit bodies to landmarks
     logger.debug('Rigidly aligning the body to the markers')
     poses = [model.pose for model in opt_models]
     trans = [model.trans for model in opt_models]
-    perform_rigid_adjustment(poses, trans, opt_models, markers_obs, markers_sim)
+    perform_rigid_adjustment(poses, trans, opt_models, [ob for ob in markers_obs], markers_sim)
 
     if cfg.opt_settings.extra_initial_rigid_adjustment:
         ch.minimize(fun=data_obj, x0=[p[:3] for p in poses] + trans, method='dogleg',
@@ -254,38 +246,36 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     logger.debug(f'Beginning mosh stagei with opt_settings.weights_type: {cfg.opt_settings.weights_type}')
 
     # Setup Variables
-    v_betas = []
-    if optimize_betas and hasattr(can_model, 'betas'):
+    if optimize_betas:
         v_betas = [can_model.betas[:cfg.surface_model.num_betas]]
 
-    v_face_exp = []
-    pose_ids = list(range(can_model.pose.size))
+    all_pose_ids = list(range(can_model.pose.size))
     pose_body_ids = []
     pose_finger_ids = []
     pose_face_ids = []
-    pose_root_ids = pose_ids[:3]
+    pose_root_ids = all_pose_ids[:3]
     if cfg.surface_model.type == 'smpl':
-        pose_body_ids = pose_ids[3:]
+        pose_body_ids = all_pose_ids[3:]
     elif cfg.surface_model.type == 'smplh':
-        pose_body_ids = pose_ids[3:66]
+        pose_body_ids = all_pose_ids[3:66]
         if cfg.moshpp.optimize_fingers:  # dont chop chumpy variables two times
-            pose_finger_ids = pose_ids[66:]
+            pose_finger_ids = all_pose_ids[66:]
     elif cfg.surface_model.type == 'smplx':  # orient:3, body:63, jaw:3, eyel:3, eyer:3, handl, handr
-        pose_body_ids = pose_ids[3:66]
+        pose_body_ids = all_pose_ids[3:66]
         if cfg.moshpp.optimize_face:
-            # if optimize_betas:
-            #     raise NotImplementedError(
-            #         'MoSh requires in the shape stage a single (shared) beta across frames and different per-frame facial expressions.'
-            #         ' The current chumpy implementation of smplx does not support this. So if you want to optimize the face you need to provide the shape, or provide a v_template.')
+            if optimize_betas:
+                raise NotImplementedError(
+                    'MoSh requires in the shape stage a single (shared) beta across frames and different per-frame facial expressions.'
+                    ' The current chumpy implementation of smplx does not support this. So if you want to optimize the face you need to provide the shape, or provide a v_template.')
 
-            pose_face_ids = pose_ids[66:69]
+            pose_face_ids = all_pose_ids[66:69]
             # only jaw, the 69:75 represent eye balls and it might be a bit difficult to capture gaze from mocap,
-
-            v_face_exp = [model.betas[100:100 + cfg.surface_model.num_expressions] for model in opt_models]
+            exp_start_id = cfg.surface_model.betas_expr_start_id
+            v_face_exp = [model.betas[exp_start_id:(exp_start_id+cfg.surface_model.num_expressions)] for model in opt_models]
         if cfg.moshpp.optimize_fingers:
-            pose_finger_ids = pose_ids[75:]
+            pose_finger_ids = all_pose_ids[75:]
     elif cfg.surface_model.type == 'mano':
-        pose_finger_ids = pose_ids[3:]
+        pose_finger_ids = all_pose_ids[3:]
 
     detailed_step = False
 
@@ -294,33 +284,35 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
         opt_objs = {}
 
-        if len(pose_body_ids): wt_poseB = stagei_wts.stagei_wt_poseB * wt_anneal_factor
-        if len(pose_finger_ids): wt_poseH = stagei_wts.stagei_wt_poseH * wt_anneal_factor
-        if len(pose_face_ids):
+        if len(pose_body_ids):
+            wt_poseB = stagei_wts.stagei_wt_poseB * wt_anneal_factor
+        if cfg.moshpp.optimize_fingers:
+            wt_poseH = stagei_wts.stagei_wt_poseH * wt_anneal_factor
+        if cfg.moshpp.optimize_face:
             wt_expr = stagei_wts.stagei_wt_expr * wt_anneal_factor
             wt_poseF = stagei_wts.stagei_wt_poseF * wt_anneal_factor
-        if len(v_betas): wt_beta = stagei_wts.stagei_wt_betas * wt_anneal_factor
+        if optimize_betas: wt_beta = stagei_wts.stagei_wt_betas * wt_anneal_factor
 
         wt_data = (stagei_wts.stagei_wt_data / wt_anneal_factor) * (num_train_markers / len(latent_labels))
 
         wt_init = {k: stagei_wts.get(f'stagei_wt_init_{k}', stagei_wts.stagei_wt_init) * wt_anneal_factor for k in
                    marker_meta['marker_type_mask'].keys()}
-        wt_surf = {k: stagei_wts.get(f'stagei_wt_surf_{k}', stagei_wts.stagei_wt_surf) for k in
-                   marker_meta['marker_type_mask'].keys()}
+        # wt_surf = {k: stagei_wts.get(f'stagei_wt_surf_{k}', stagei_wts.stagei_wt_surf) for k in
+        #            marker_meta['marker_type_mask'].keys()}
 
         wt_messages = f'Step {tidx + 1}/{len(stagei_wts.stagei_wt_annealing)} :' \
                       f' Opt. wt_anneal_factor = {wt_anneal_factor:.2f}, ' \
                       f'wt_data = {wt_anneal_factor:.2f}, wt_poseB = {wt_data:.2f}'
-        if cfg.moshpp.optimize_fingers:
+        if detailed_step and cfg.moshpp.optimize_fingers:
             wt_messages += f', wt_poseH = {wt_poseH:.2f}'
-        if cfg.moshpp.optimize_face:
+        if detailed_step and cfg.moshpp.optimize_face:
             wt_messages += f', wt_expr = {wt_expr:.2f}'
 
         logger.debug(wt_messages)
         logger.debug(
             f'stagei_wt_init for different marker types {", ".join([f"{k} = {v:.02f}" for k, v in wt_init.items()])}: ')
-        logger.debug(
-            f'stagei_wt_surf for different marker types {", ".join([f"{k} = {v:.02f}" for k, v in wt_surf.items()])}')
+        # logger.debug(
+        #     f'stagei_wt_surf for different marker types {", ".join([f"{k} = {v:.02f}" for k, v in wt_surf.items()])}')
 
         # opt_objs.update({'data_%s' % k: data_obj[k] * wt_data[k] for k in can_meta['mrk_ids']})
         opt_objs['data'] = data_obj * wt_data
@@ -333,7 +325,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         # opt_objs['init'] = wt_init * init_loss
         if head_mrk_corr is not None:
             opt_objs.update(
-                {'init_%s' % k: init_loss[list(
+                {f'init_{k}': init_loss[list(
                     set(np.arange(len(latent_labels))[marker_type_mask]).difference(head_mrk_ids))] * wt_init[k] for
                  k, marker_type_mask in
                  marker_meta['marker_type_mask'].items() if k != 'head'})
@@ -344,34 +336,40 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
             opt_objs.update({f'init_{k}': init_loss[marker_type_mask] * wt_init[k] for k, marker_type_mask in
                              marker_meta['marker_type_mask'].items()})
 
-        if len(v_betas): opt_objs['beta'] = can_model.priors['betas'].ravel() * wt_beta
-        # opt_objs['surf'] = surf_loss * wt_surf
-        opt_objs.update(
-            {f'surf_{k}': distance_to_surface_obj[marker_type_mask] * wt_surf[k] for k, marker_type_mask in
-             marker_meta['marker_type_mask'].items()})
+        if optimize_betas: opt_objs['beta'] = can_model.priors['betas'].ravel() * wt_beta
+        opt_objs['surf'] = distance_to_surface_obj * stagei_wts.stagei_wt_surf
+        # opt_objs.update({f'surf_{k}': distance_to_surface_obj[marker_type_mask] * wt_surf[k] for k, marker_type_mask in
+        #                  marker_meta['marker_type_mask'].items()})
+
+        # opt_objs['surf'] = distance_to_surface_obj * wt_surf
+        # opt_objs.update(
+        #     {f'surf_{k}': distance_to_surface_obj[marker_type_mask] * wt_surf[k] for k, marker_type_mask in
+        #      marker_meta['marker_type_mask'].items()})
         # opt_objs['surf_loss'] = ch.concatenate([surf_loss[ids] *wt_surf*surf_wt_factor[k] for k, ids in can_meta['mrk_ids'].items()])
         # opt_objs['surf_loss'] = ch.concatenate([init_loss[ids] *wt_surf[k] for k, ids in can_meta['mrk_ids'].items()])
+        free_vars = trans + [markers_latent]
+        pose_ids = pose_root_ids + pose_body_ids
+
+        if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
+            pose_ids = list(set(pose_ids).difference(set(all_pose_ids[30:36])))
 
         if detailed_step:
-            if len(pose_finger_ids):
+            if cfg.moshpp.optimize_fingers:
                 opt_objs['poseH'] = ch.concatenate([model.pose[pose_finger_ids] for model in opt_models]) * wt_poseH
-            if len(pose_face_ids):
+                pose_ids += pose_finger_ids
+            if cfg.moshpp.optimize_face:
                 opt_objs['poseF'] = ch.concatenate([model.pose[pose_face_ids] for model in opt_models]) * wt_poseF
                 opt_objs['expr'] = ch.concatenate(v_face_exp) * wt_expr
+                pose_ids += pose_face_ids
+                free_vars += v_face_exp
 
-            poses = pose_root_ids + pose_body_ids + pose_finger_ids + pose_face_ids
-            if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
-                poses = list(set(poses).difference(set(pose_ids[30:36])))
-            poses = [model.pose[poses] for model in opt_models]
-            free_vars = poses + trans + v_face_exp + v_betas + [markers_latent]
-        else:
-            poses = pose_root_ids + pose_body_ids
-            if len(pose_body_ids) and not cfg.moshpp.optimize_toes: poses = list(
-                set(poses).difference(set(pose_ids[30:36])))
-            poses = [model.pose[poses] for model in opt_models]
-            free_vars = poses + trans + v_betas + [markers_latent]  # [tc.markers_latent[:len(markers_latent_B)]]
+        pose_ids = sorted(list(set(pose_ids)))
+        v_poses = [model.pose[pose_ids] for model in opt_models]
 
-        logger.debug('Init. loss values: {}'.format(' | '.join(
+        free_vars += v_poses
+        if optimize_betas: free_vars += v_betas
+
+        logger.debug("Init. loss values: {}".format(' | '.join(
             [f'{k} = {np.sum(opt_objs[k].r ** 2):2.2e}' for k in sorted(opt_objs)])))
         ch.minimize(fun=opt_objs, x0=free_vars,
                     callback=on_step,
@@ -491,30 +489,31 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
     dmpl_prev = None
 
     # Setup Variables
-    v_face_exp = []
 
-    pose_ids = list(range(opt_model.pose.size))
+    all_pose_ids = list(range(opt_model.pose.size))
     pose_body_ids = []
     pose_face_ids = []
     pose_finger_ids = []
-    pose_root_ids = pose_ids[:3]
+    pose_root_ids = all_pose_ids[:3]
     # v_pose_body = [model.pose[3:] for model in opt_models]
     if cfg.surface_model.type == 'smpl':
-        pose_body_ids = pose_ids[3:]
+        pose_body_ids = all_pose_ids[3:]
     elif cfg.surface_model.type == 'smplh':
-        pose_body_ids = pose_ids[3:66]
+        pose_body_ids = all_pose_ids[3:66]
         if cfg.moshpp.optimize_fingers:  # dont chop chumpy variables two times
-            pose_finger_ids = pose_ids[66:]
+            pose_finger_ids = all_pose_ids[66:]
     elif cfg.surface_model.type == 'smplx':  # orient:3, body:63, jaw:3, eyel:3, eyer:3, handl, handr
-        pose_body_ids = pose_ids[3:66]
+        pose_body_ids = all_pose_ids[3:66]
         if cfg.moshpp.optimize_face:
-            pose_face_ids = pose_ids[66:69]
-            # pose_face_ids = pose_ids[66:75]
-            v_face_exp = opt_model.betas[300:300 + cfg.surface_model.num_expressions]
+            pose_face_ids = all_pose_ids[66:69]
+            # pose_face_ids = all_pose_ids[66:75]
+            exp_start_id = cfg.surface_model.betas_expr_start_id
+
+            v_face_exp = opt_model.betas[exp_start_id:(exp_start_id + cfg.surface_model.num_expressions)]
         if cfg.moshpp.optimize_fingers:
-            pose_finger_ids = pose_ids[75:]
+            pose_finger_ids = all_pose_ids[75:]
     elif cfg.surface_model.type == 'mano':
-        pose_finger_ids = pose_ids[3:]
+        pose_finger_ids = all_pose_ids[3:]
 
     first_active_frame = True
     observed_markers_dict = mocap.markers_asdict()
@@ -560,7 +559,7 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
 
         # 1. Fit only the first frame
         if first_active_frame:  # np.median(np.abs(data_obj.r.ravel())) > .03:
-            # Rigidly adjust poses/trans to fit bodies to landmarks
+            # Rigidly adjust pose_ids/trans to fit bodies to landmarks
             logger.debug('Rigidly aligning the markers to the body...')
             # opt_model.pose[:] = opt_model.pose.r
             # opt_model.trans[:] = opt_model.trans.r
@@ -571,11 +570,11 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
                 if len(pose_body_ids):
                     opt_objs['poseB'] = opt_model.priors['pose'](opt_model.pose[pose_body_ids]) * wt_pose_first
 
-                poses = pose_root_ids + pose_body_ids
-                if len(pose_body_ids) and not cfg.moshpp.optimize_toes: poses = list(
-                    set(poses).difference(set(pose_ids[30:36])))
+                pose_ids = pose_root_ids + pose_body_ids
+                if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
+                    pose_ids = list(set(pose_ids).difference(set(all_pose_ids[30:36])))
 
-                free_vars = [opt_model.trans, opt_model.pose[poses]]
+                free_vars = [opt_model.trans, opt_model.pose[pose_ids]]
 
                 ch.minimize(fun=list(opt_objs.values()) if cfg.moshpp.verbosity == 0 else opt_objs, x0=free_vars,
                             method='dogleg',
@@ -591,10 +590,10 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
         logger.debug(
             f'{fIdx:04d}/{len(selected_frames):04d} -- Step 1. initial loss values: {" | ".join(["{} = {:2.2e}".format(k, np.sum(v.r ** 2)) for k, v in opt_objs.items()])}')
 
-        poses = pose_root_ids + pose_body_ids
-        if len(pose_body_ids) and not cfg.moshpp.optimize_toes: poses = list(
-            set(poses).difference(set(pose_ids[30:36])))
-        free_vars = [opt_model.trans, opt_model.pose[poses]]
+        pose_ids = pose_root_ids + pose_body_ids
+        if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
+            pose_ids = list(set(pose_ids).difference(set(all_pose_ids[30:36])))
+        free_vars = [opt_model.trans, opt_model.pose[pose_ids]]
         ch.minimize(fun=list(opt_objs.values()) if cfg.moshpp.verbosity == 0 else opt_objs, x0=free_vars,
                     method='dogleg',
                     options={'e_3': .01, 'delta_0': 5e-1, 'disp': None, 'maxiter': cfg.opt_settings.maxiter})
@@ -603,24 +602,27 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
 
         # 2. Fit for full pose
         free_vars = [opt_model.trans]
-        current_v_pose_ids = pose_root_ids + pose_body_ids
-        if len(pose_body_ids) and not cfg.moshpp.optimize_toes: current_v_pose_ids = list(
-            set(current_v_pose_ids).difference(set(pose_ids[30:36])))
+        pose_ids = pose_root_ids + pose_body_ids
+        if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
+            pose_ids = list(set(pose_ids).difference(set(all_pose_ids[30:36])))
 
-        if len(pose_finger_ids):
+        if cfg.moshpp.optimize_fingers:
             opt_objs['poseH'] = opt_model.pose[pose_finger_ids] * wt_poseH
-            current_v_pose_ids += pose_finger_ids
+            pose_ids += pose_finger_ids
 
         if cfg.moshpp.optimize_face:
             opt_objs['poseF'] = opt_model.pose[pose_face_ids] * wt_poseF
             opt_objs['expr'] = v_face_exp * wt_expr
             free_vars += [v_face_exp]
-            current_v_pose_ids += pose_face_ids
-        free_vars += [opt_model.pose[current_v_pose_ids]]
+            pose_ids += pose_face_ids
+
+        pose_ids = sorted(list(set(pose_ids)))
+        free_vars += [opt_model.pose[pose_ids]]
+
         if cfg.moshpp.optimize_dynamics:
             if dmpl_prev is not None:
-                opt_objs['extrap_dmpl'] = (opt_model.dmpl - (
-                        opt_model.dmpl.r + (opt_model.dmpl.r - dmpl_prev))) * 6.0
+                opt_objs['extrap_dmpl'] =\
+                    (opt_model.dmpl - (opt_model.dmpl.r + (opt_model.dmpl.r - dmpl_prev))) * 6.0
             opt_objs['dmpl'] = opt_model.dmpl * wt_dmpl
             free_vars += [opt_model.dmpl]
 
@@ -647,7 +649,7 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
         if cfg.moshpp.optimize_dynamics:
             perframe_data['dmpls'].append(opt_model.betas.r[cfg.surface_model.num_betas:total_num_betas].copy())
         if cfg.moshpp.optimize_face:
-            perframe_data['expression'].append(opt_model.betas[300:].r.copy())
+            perframe_data['expression'].append(opt_model.betas[exp_start_id:].r.copy())
 
     stageii_debug_details = {
         'stageii_errs': {k: np.array(v) for k, v in perframe_data.pop('stageii_errs').items()},
