@@ -126,7 +126,7 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
         surface_model_type = d['surface_model_type']
 
     logger.info(f'Loading marker layout: {marker_layout_fname}')
-    logger.info('Available marker tyes: {}'.format({markerset['type']:len(markerset['indices']) for markerset in sorted(d['markersets'], key=lambda a: a['type'])}))
+    logger.info('Available marker types: {}. Total: {}'.format({markerset['type']:len(markerset['indices']) for markerset in sorted(d['markersets'], key=lambda a: a['type'])}, sum([len(markerset['indices']) for markerset in d['markersets']])))
 
     for markerset in sorted(d['markersets'], key=lambda a: a['type']):
         marker_type = markerset['type']
