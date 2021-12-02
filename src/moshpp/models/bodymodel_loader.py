@@ -39,7 +39,7 @@ import numpy as np
 
 from moshpp.models.smpl_fast_derivatives import SmplModelLBS
 from moshpp.models.smpl_fast_derivatives import load_surface_model
-
+from moshpp.models.smpl_fast_derivatives import SmplModelLBS
 
 def load_dmpl(pkl_path):
     with open(pkl_path) as f:
@@ -97,22 +97,34 @@ def load_moshpp_models(surface_model_fname,
     else:
         from moshpp.prior.gmm_prior_ch import create_gmm_body_prior
 
-        can_model = load_surface_model(surface_model_fname=surface_model_fname,
+        sm_temp = load_surface_model(surface_model_fname=surface_model_fname,
                                        pose_hand_prior_fname=pose_hand_prior_fname,
                                        use_hands_mean=use_hands_mean,
                                        dof_per_hand=dof_per_hand,
                                        v_template_fname=v_template_fname)
+
+
+        betas = ch.array(np.zeros(400))
+
+        can_model = SmplModelLBS(trans=ch.array(np.zeros(sm_temp.trans.size)),
+                              pose=ch.array(np.zeros(sm_temp.pose.size)),
+                              betas=betas,
+                              temp_model=sm_temp)
+
         assert can_model.model_type == surface_model_type
 
-        priors = {'betas': AliasedBetas(sv=can_model, surface_model_type=surface_model_type),
+        priors = {
                   'pose': create_gmm_body_prior(pose_body_prior_fname=pose_body_prior_fname,
                                                 exclude_hands=surface_model_type in ['smplh', 'smplx'])
                   }
+        if surface_model_type != 'smplx':
+            priors['betas'] = AliasedBetas(sv=can_model, surface_model_type=surface_model_type)
+
         can_model.priors = priors
 
         beta_shared_models = [SmplModelLBS(pose=ch.array(np.zeros(can_model.pose.size)),
                                             trans=ch.array(np.zeros(can_model.trans.size)),
-                                            betas=can_model.betas,
+                                            betas=can_model.betas if surface_model_type != 'smplx' else ch.array(np.zeros(can_model.betas.size)),
                                             temp_model=can_model) for _ in range(num_beta_shared_models)]
 
     return can_model, beta_shared_models

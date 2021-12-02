@@ -46,6 +46,7 @@ from psbody.mesh import Mesh
 from psbody.smpl.fast_derivatives.smplcpp_chumpy import lbs_derivatives_wrt_pose, lbs_derivatives_wrt_shape
 from psbody.smpl.verts import verts_decorated
 from loguru import logger
+from chumpy.ch import MatVecMult
 
 def load_surface_model(surface_model_fname,
                        pose_hand_prior_fname=None,
@@ -64,8 +65,9 @@ def load_surface_model(surface_model_fname,
     #     assert model_type in ['mano', 'smplx', 'smplh']
 
     if v_template_fname is not None:
+        v_template = Mesh(filename=v_template_fname).v
         assert osp.exists(v_template_fname), FileExistsError(v_template_fname)
-        dd['v_template'] = Mesh(filename=v_template_fname).v
+        dd['v_template'] = v_template
         logger.info(f'Using v_template_fname: {v_template_fname}')
 
     if model_type in ['smplx', 'smplh']:
@@ -76,13 +78,11 @@ def load_surface_model(surface_model_fname,
         mano_prior_parms = np.load(pose_hand_prior_fname)
 
         hands_componentsl = mano_prior_parms['componentsl']  # (45, 45)
-        hands_meanl = mano_prior_parms['hands_meanl'] if use_hands_mean else np.zeros(
-            hands_componentsl.shape[1])  # (45,)
+        hands_meanl = mano_prior_parms['hands_meanl'] if use_hands_mean else np.zeros(hands_componentsl.shape[1])  # (45,)
         # hands_coeffsl = mano_prior_parms['hands_coeffsl'][:,:dof_per_hand]  # (659, 45)  ---> (659, 6)
 
         hands_componentsr = mano_prior_parms['componentsr']  # (45, 45)
-        hands_meanr = mano_prior_parms['hands_meanr'] if use_hands_mean else np.zeros(
-            hands_componentsr.shape[1])  # (45,)
+        hands_meanr = mano_prior_parms['hands_meanr'] if use_hands_mean else np.zeros(hands_componentsr.shape[1])  # (45,)
         # hands_coeffsr = mano_prior_parms['hands_coeffsr'][:,:dof_per_hand]  # (895, 45)  ---> (895, 6)
 
         selected_components = np.vstack(
@@ -90,7 +90,10 @@ def load_surface_model(surface_model_fname,
              np.hstack((np.zeros_like(hands_componentsr[:dof_per_hand]), hands_componentsr[:dof_per_hand]))))
         hands_mean = np.concatenate((hands_meanl, hands_meanr))
 
-        dd['pose'] = ch.zeros(pose_body_dof + selected_components.shape[0])
+        nposeparms = dd['kintree_table'].shape[1] * 3
+
+        dd['pose'] = ch.zeros(nposeparms)
+        # dd['pose'] = ch.zeros(pose_body_dof + selected_components.shape[0])
 
         dd['pose_body_dof'] = pose_body_dof
         dd['pose_hand_dof'] = dof_per_hand * 2
@@ -143,12 +146,15 @@ def load_surface_model(surface_model_fname,
     for k, v in dd.items():
         model.__setattr__(k, v)
 
-    model_with_fast_derivatives = SmplModelLBS(pose=dd['pose'],
-                                               trans=dd['trans'],
-                                               betas=dd['betas'],
-                                               temp_model=model)  # Smpl model based on linear blend skinning.
+    model = SmplModelLBS(pose=ch.zeros(pose_body_dof + selected_components.shape[0]),# pose=dd['pose'],
+                        trans=dd['trans'],
+                        betas=dd['betas'],
+                        temp_model=model)  # Smpl model based on linear blend skinning.
 
-    return model_with_fast_derivatives
+    if v_template_fname is not None:
+        model.v_template[:] = v_template
+
+    return model
 
 
 class SmplModelLBS(ch.Ch):
@@ -162,48 +168,62 @@ class SmplModelLBS(ch.Ch):
 
         self.model_type = temp_model.model_type
 
+        faces = temp_model.f
+        posedirs = temp_model.posedirs
+        shapedirs = temp_model.shapedirs
+        weights = temp_model.weights
+
+        v_template = ch.array(temp_model.v_template.r)
+        v_shaped = v_template + shapedirs[:, :, :len(self.betas)].dot(self.betas)
+        J_tmpx = MatVecMult(temp_model.J_regressor, v_shaped[:, 0])
+        J_tmpy = MatVecMult(temp_model.J_regressor, v_shaped[:, 1])
+        J_tmpz = MatVecMult(temp_model.J_regressor, v_shaped[:, 2])
+        self.J_predicted = ch.vstack((J_tmpx, J_tmpy, J_tmpz)).T
+        self.J = self.J_predicted
+
+
         if self.model_type in ['smplh', 'smplx', 'mano']:
             self.selected_components = temp_model.selected_components
             self.hands_mean = temp_model.hands_mean  # Hands Mean
             self.pose_hand_dof = temp_model.pose_hand_dof  # Number of components
             self.pose_body_dof = temp_model.pose_body_dof  # body pose degree of freedom
             # Todo: shouldn't this be self.pose?
-            full_hand_pose = pose[self.pose_body_dof:(self.pose_body_dof + self.pose_hand_dof)].dot(
-                self.selected_components)
+            full_hand_pose = pose[temp_model.pose_body_dof:(temp_model.pose_body_dof + temp_model.pose_hand_dof)].dot(temp_model.selected_components)
 
-            full_body_pose = ch.concatenate((pose[:self.pose_body_dof], self.hands_mean + full_hand_pose))
+            full_body_pose = ch.concatenate((pose[:temp_model.pose_body_dof], temp_model.hands_mean + full_hand_pose))
         else:
             full_body_pose = self.pose
 
         self._inner_model = verts_decorated(trans=self.trans,
                                             pose=full_body_pose,
-                                            v_template=temp_model.v_template,
-                                            J=temp_model.J_regressor,
-                                            weights=temp_model.weights,
+                                            v_template=v_template,
+                                            J=self.J,
+                                            weights=weights,
                                             kintree_table=temp_model.kintree_table,
                                             bs_style=temp_model.bs_style,
-                                            f=temp_model.f,
+                                            f=faces,
                                             bs_type=temp_model.bs_type,
-                                            posedirs=temp_model.posedirs,
+                                            posedirs=posedirs,
                                             betas=self.betas,
-                                            shapedirs=temp_model.shapedirs[:, :, :len(self.betas)])
+                                            shapedirs=temp_model.shapedirs[:, :, :len(self.betas)],
+                                            want_Jtr=True)
 
         self.v_shaped = self._inner_model.v_shaped
         self.bs_style = self._inner_model.bs_style
         self.posedirs = self._inner_model.posedirs
         self.bs_type = self._inner_model.bs_type
         self.shapedirs = self._inner_model.shapedirs
-        # self.A = self._inner_model.A
-        # self.A_global = self._inner_model.A_global
+        self.A = self._inner_model.A
+        self.A_global = self._inner_model.A_global
         self.J_transformed = self._inner_model.Jtr
         self.J = self._inner_model.J
         self.Jtr = self._inner_model.Jtr
         self.f = self._inner_model.f
         self.weights = self._inner_model.weights
         self.v_posed = self._inner_model.v_posed
-        # self.A_weighted = self._inner_model.A_weighted
+        self.A_weighted = self._inner_model.A_weighted
         self.kintree_table = self._inner_model.kintree_table
-        self.v_template = temp_model.v_template
+        self.v_template = v_template
         self.J_regressor = temp_model.J_regressor
         self.fullpose = full_body_pose
 
@@ -218,11 +238,10 @@ class SmplModelLBS(ch.Ch):
         if wrt is self.pose:
             if self.model_type in ['smplh', 'smplx', 'mano']:
                 import numpy as np
-                row1 = np.hstack([np.eye(self.pose_body_dof), np.zeros(
-                    (self.pose_body_dof,
-                     self.pose_hand_dof))])  # for SMPL+HF ---> np.hstack([np.eye(75),np.zeros((75,12))])
-                row2 = np.hstack([np.zeros((self.selected_components.shape[1], self.pose_body_dof)), np.transpose(
-                    self.selected_components)])  # for SMPL+HF ---> np.hstack([np.zeros((90,75)),np.transpose(self.selected_components)])
+                row1 = np.hstack([np.eye(self.pose_body_dof), np.zeros((self.pose_body_dof,self.pose_hand_dof))])
+                # for SMPL+HF ---> np.hstack([np.eye(75),np.zeros((75,12))])
+                row2 = np.hstack([np.zeros((self.selected_components.shape[1],self.pose_body_dof)), np.transpose(self.selected_components)])
+                # for SMPL+HF ---> np.hstack([np.zeros((90,75)),np.transpose(self.selected_components)])
                 m = np.vstack((row1, row2))
                 g = np.matmul(lbs_derivatives_wrt_pose(self._inner_model), m)
                 return g
