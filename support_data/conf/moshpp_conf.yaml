@@ -18,6 +18,7 @@ surface_model:
   fname: ${dirs.support_base_dir}/${surface_model.type}/${surface_model.gender}/model.pkl
   dmpl_fname: ${dirs.support_base_dir}/${surface_model.type}/${surface_model.gender}/dmpl.pkl
   num_betas: 16
+  betas_expr_start_id: 300
   num_dmpls: 8
   dof_per_hand: 24
   num_expressions: 80
@@ -53,7 +54,7 @@ moshpp:
   verbosity: 1
 
 dirs:
-  support_base_dir: /ps/project/soma/support_files/release_soma
+  support_base_dir: ???
   work_base_dir: ???
 
   marker_layout_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.ds_name}_${surface_model.type}.json
@@ -79,6 +80,7 @@ opt_weights:
     stagei_wt_poseB: 3.
     stagei_wt_init_finger_left: 400.0
     stagei_wt_init_finger_right: 400.0
+    stagei_wt_init_finger: 400.0
     stagei_wt_betas: 10.
     stagei_wt_init: 300
     stagei_wt_data: 75.
@@ -93,12 +95,12 @@ opt_weights:
     stageii_wt_poseF: 1.0
     stageii_wt_annealing: 2.5
   smplx_grab_vtemplate:
-    stagei_wt_surf: 1000.0
-    #    stagei_wt_surf_body: 1000.0 # when v_template or betas is given
+    stagei_wt_surf: 10000.0
+    #stagei_wt_surf_body: 10000.0 # when v_template or betas is given
     stagei_wt_init_hand: 347.36
     stagei_wt_init_finger: 789.47
-    stagei_wt_init_finger_left: 789.47
-    stagei_wt_init_finger_right: 789.47
+#    stagei_wt_init_finger_left: 789.47
+#    stagei_wt_init_finger_right: 789.47
     stagei_wt_init_head: 220.69
     stagei_wt_init_face: 775.86
     stagei_wt_poseH: 5.31 # 6.87
