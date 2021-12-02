@@ -106,7 +106,7 @@ class MaxMixtureCompleteWrapper(object):
 
 def create_gmm_body_prior(pose_body_prior_fname, exclude_hands=False):
     assert os.path.exists(pose_body_prior_fname), \
-        ValueError('pose_body_prior_fname does not exist: {}'.format(pose_body_prior_fname))
+        ValueError(f'pose_body_prior_fname does not exist: {pose_body_prior_fname}')
 
     with open(pose_body_prior_fname, 'rb') as f:
         gmm = pickle.load(f, encoding='latin-1')

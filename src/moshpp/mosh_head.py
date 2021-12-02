@@ -102,11 +102,11 @@ class MoSh:
             f'optimize_dynamics: {self.cfg.moshpp.optimize_dynamics}')
 
         if self.cfg.surface_model.type in ['smplh', 'smplx', 'mano'] and self.cfg.moshpp.optimize_fingers:
-            logger.debug(f'Optimizing for fingers. dof_per_hand = {self.cfg.surface_model.dof_per_hand}')
+            logger.debug(f'optimizing for fingers. dof_per_hand = {self.cfg.surface_model.dof_per_hand}')
 
         if self.cfg.surface_model.type in ['smplx', 'flame'] and self.cfg.moshpp.optimize_face:
             logger.debug(
-                f'Optimizing for facial expressions. num_expressions = {self.cfg.surface_model.num_expressions:d}')
+                f'optimizing for facial expressions. num_expressions = {self.cfg.surface_model.num_expressions:d}')
 
         if self.cfg.dirs.marker_layout_fname is None:
             self.cfg.dirs.marker_layout_fname = osp.join(osp.dirname(osp.dirname(self.cfg.mocap.fname)),
@@ -286,7 +286,10 @@ class MoSh:
         if isinstance(stageii_pkl_data_or_fname, dict):
             stageii_pkl_data = stageii_pkl_data_or_fname
         else:
-            stageii_pkl_data = pickle.load(open(stageii_pkl_data_or_fname, 'rb'))
+            try:
+                stageii_pkl_data = pickle.load(open(stageii_pkl_data_or_fname, 'rb'))
+            except UnicodeDecodeError:
+                return MoSh.load_as_amass_npz_legacy(stageii_pkl_data_or_fname,stageii_npz_fname,stagei_npz_fname,include_markers)
 
         cfg = stageii_pkl_data['stageii_debug_details']['cfg']
 
@@ -317,7 +320,7 @@ class MoSh:
             stageii_npz_data['num_dmpls'] = cfg['surface_model']['num_dmpls']
 
         if cfg.moshpp.optimize_face:
-            stageii_npz_data['expression'] = stageii_pkl_data['expression'][:cfg['surface_model']['num_expressions']]
+            stageii_npz_data['expression'] = stageii_pkl_data['expression'][:,:cfg['surface_model']['num_expressions']]
             stageii_npz_data['num_expressions'] = cfg['surface_model']['num_expressions']
 
         part_based_pose = turn_fullpose_into_parts(stageii_pkl_data['fullpose'], cfg['surface_model']['type'])
