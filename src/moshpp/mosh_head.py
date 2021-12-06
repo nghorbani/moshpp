@@ -267,6 +267,108 @@ class MoSh:
         return self.stageii_fname
 
     @staticmethod
+    def load_as_amass_npz_legacy(stageii_pkl_data_or_fname: Union[dict, Union[str, Path]],
+                          stageii_npz_fname: Union[str, Path] = None,
+                          stagei_npz_fname: Union[str, Path] = None,
+                          include_markers: bool = False,
+                          ) -> dict:
+        """
+
+                :param stageii_pkl_data_or_fname:
+                :param stageii_npz_fname:
+                :param stagei_npz_fname:
+                :param include_markers:
+                :return:
+                """
+        setup_mosh_omegaconf_resolvers()  # this method could be called on its own
+
+        if isinstance(stageii_pkl_data_or_fname, dict):
+            stageii_pkl_data = stageii_pkl_data_or_fname
+        else:
+            stageii_pkl_data = pickle.load(open(stageii_pkl_data_or_fname, 'rb'), encoding='latin-1')
+
+
+        cfg = stageii_pkl_data['ps']
+        # print(cfg.keys())
+        # print(stageii_pkl_data.keys())
+        # if not mo['ps']['optimize_dynamics']: print 'does not have dynamics: %s'%mosh_path
+        stageii_npz_data = {
+            'gender': cfg['gender'],
+            'surface_model_type': cfg['fitting_model'],
+
+            'mocap_frame_rate': stageii_pkl_data['mocap_framerate'],
+            'mocap_time_length': stageii_pkl_data['mocap_timelength'],
+
+            'markers_latent': stageii_pkl_data['shape_est_lmrks'],
+            'latent_labels': stageii_pkl_data['shape_est_lmlabels'],
+            'markers_latent_vids': stageii_pkl_data['shape_debug_details']['shape_est_lmrks_vids'],
+
+            'trans': stageii_pkl_data['pose_est_trans'],
+            'poses': stageii_pkl_data['pose_est_fullposes'],
+        }
+        if 'vtemplate_fname' in stageii_pkl_data:
+            from psbody.mesh import Mesh
+            stageii_npz_data['v_template'] = Mesh(filename=stageii_pkl_data['vtemplate_fname']).v
+            stageii_npz_data['v_template_fname'] =stageii_pkl_data['vtemplate_fname']
+
+        optimize_betas = ('vtemplate_fname' not in stageii_pkl_data) and (cfg['betas'] is None)
+        if optimize_betas:
+            num_betas = cfg['num_betas']
+            stageii_npz_data['betas'] = stageii_pkl_data['shape_est_betas'][:num_betas]
+            stageii_npz_data['num_betas'] = num_betas
+
+        if cfg['use_dynamics']:
+            num_dmpls = cfg['num_dmpls']
+            stageii_npz_data['dmpls'] = stageii_pkl_data['pose_est_dmpls'][:,:num_dmpls]
+            stageii_npz_data['num_dmpls'] = num_dmpls
+
+        if cfg['optimize_face']:
+            num_expressions = cfg['num_expr']
+            stageii_npz_data['expression'] = stageii_pkl_data['pose_est_exprs'][:,:num_expressions]
+            stageii_npz_data['num_expressions'] = num_expressions
+
+        part_based_pose = turn_fullpose_into_parts(stageii_pkl_data['pose_est_fullposes'], cfg['fitting_model'])
+        stageii_npz_data.update(part_based_pose)
+
+        if include_markers:
+            marker_layout_fname = cfg['mrk_settings_fname']
+            from moshpp.marker_layout.edit_tools import marker_layout_load
+            marker_meta = marker_layout_load(marker_layout_fname, only_markers=stageii_pkl_data['shape_est_lmlabels'])
+            stageii_npz_data['markers'] = stageii_pkl_data['pose_est_obmrks']
+            stageii_npz_data['labels'] = stageii_pkl_data['pose_est_mrk_labels']
+
+            stageii_npz_data['markers_obs'] = stageii_pkl_data['pose_est_obmrks']
+            stageii_npz_data['labels_obs'] = stageii_pkl_data['pose_est_mrk_labels']
+
+            stageii_npz_data['markers_sim'] = stageii_pkl_data['pose_est_simmrks']
+            stageii_npz_data['marker_meta'] = marker_meta
+
+            stageii_npz_data['num_markers'] = stageii_npz_data['markers'].shape[1]
+
+        if stageii_npz_fname:
+            if not osp.exists(stageii_npz_fname):
+                np.savez(makepath(stageii_npz_fname, isfile=True), **stageii_npz_data)
+                logger.info(f'created amass_stageii_npz_fname: {stageii_npz_fname}')
+
+            if stagei_npz_fname is None:
+                stagei_npz_fname = osp.join(osp.dirname(stageii_npz_fname),
+                                            f"{cfg['gender']}_stagei.npz")
+            if not osp.exists(stagei_npz_fname):
+                np.savez(makepath(stagei_npz_fname, isfile=True), **{k: v for k, v in stageii_npz_data.items()
+                                                                     if k in ['gender',
+                                                                              'surface_model_type',
+                                                                              'markers_latent',
+                                                                              'latent_labels',
+                                                                              'markers_latent_vids',
+                                                                              'betas',
+                                                                              'v_template']})
+
+                logger.info(f'created amass_stagei_npz_fname: {stagei_npz_fname}')
+
+        return stageii_npz_data
+
+
+    @staticmethod
     def load_as_amass_npz(stageii_pkl_data_or_fname: Union[dict, Union[str, Path]],
                           stageii_npz_fname: Union[str, Path] = None,
                           stagei_npz_fname: Union[str, Path] = None,

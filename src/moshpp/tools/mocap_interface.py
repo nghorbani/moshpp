@@ -67,9 +67,13 @@ def write_mocap_c3d(markers: np.ndarray, labels: list, out_c3d_fname: str, frame
     x = markers[:, :, 0:1]
     y = markers[:, :, 1:2]
     z = markers[:, :, 2:3]
-    points = np.concatenate([x, z, -y,
-                             np.ones([markers.shape[0], markers.shape[1], 1]),
-                             np.zeros([markers.shape[0], markers.shape[1], 1])], axis=-1).astype(np.float)
+    pts = np.concatenate([x, z, -y],  axis=-1)
+    pts = rotate_points_xyz(pts, [90,0,0]).reshape(pts.shape)
+
+    pts_extra = np.concatenate([np.ones([markers.shape[0], markers.shape[1], 1]),
+                             np.zeros([markers.shape[0], markers.shape[1], 1])], axis=-1)
+    points = np.concatenate([pts, pts_extra], axis=-1).astype(float)
+
     for t in range(points.shape[0]):  # for each frame
 
         zero_mask = ((points[t] == 0).sum(-1) == 4)
@@ -329,11 +333,24 @@ class MocapSession(object):
 
 
 if __name__ == '__main__':
-    mocap_fname = '/ps/project/amass/MOCAP/PS_MoCaps/SOMApp/SOMApp_shogun_reconstructed_mpc/210506_00155/SOMA_2.c3d'
-    mocap = MocapSession(mocap_fname, mocap_unit='mm', ignore_stared_labels=False)
+    # mocap_fname = '/home/nghorbani/Dropbox/session17_take4_01.c3d'
+    mocap_fname = '/ps/project/amass/MOCAP/FB/FB_Talking_with_hands/mocap_flattened/FB32M_chopped_1000/session17/session17_take3_01_part_05.c3d'
+    # mocap_fname = '/ps/project/amass/MOCAP/FB/FB_Talking_with_hands/mocap_flattened/FB32M/session17/session17_take3_01.c3d'
+    mocap = MocapSession(mocap_fname, mocap_unit='mm', ignore_stared_labels=False)#, mocap_rotate=[90,0,0])
     a = mocap.markers_asdict()
     print(a[0])
-    print(mocap.labels)
+    print(mocap.markers.shape)
+    print(len(mocap.labels), mocap.labels)
     print(mocap.frame_rate)
+    print(mocap.time_length())
     # print(mocap._marker_data['labels_perframe'])
-    mocap.play_mocap_trajectories(delay=0.1)
+    mocap.play_mocap_trajectories(radius=0.03)
+    # write_mocap_c3d(
+    #     markers= mocap.markers[:10000]*10,
+    #     labels=mocap.labels,
+    #     frame_rate=mocap.frame_rate,
+    #     out_c3d_fname='/home/nghorbani/Dropbox/FB_100.c3d'
+    # )
+    # mocap = MocapSession('/home/nghorbani/Dropbox/FB_100.c3d', mocap_unit='mm', ignore_stared_labels=False)
+    #
+    # mocap.play_mocap_trajectories(radius=0.003)

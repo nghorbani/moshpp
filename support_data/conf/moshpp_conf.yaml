@@ -48,7 +48,7 @@ moshpp:
     type: random_strict
     seed: 100
     num_frames: 12
-    least_avail_markers: 0.5 # [0,1.] with 1 being all the marker available
+    least_avail_markers: 1.0 # [0,1.] with 1 being all the marker available
     stagei_mocap_fnames: # sequences for stagei of mosh
 
   verbosity: 1
