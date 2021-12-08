@@ -52,6 +52,7 @@ from moshpp.scan2mesh.mesh_distance_main import PtsToMesh
 from moshpp.tools.mocap_interface import MocapSession
 from moshpp.tools.visualization import visualize_pose_estimate, visualize_shape_estimate
 from moshpp.transformed_lm import TransformedCoeffs, TransformedLms
+from human_body_prior.tools.omni_tools import makepath
 
 def prepare_mosh_markers_latent(can_model, marker_meta):
     can_v = can_model.r
@@ -94,6 +95,10 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         betas = np.load(betas_fname)['betas']
     else:
         betas = None
+
+    log_fname = makepath(cfg.dirs.stagei_fname.replace('.pkl', '.log'), isfile=True)
+    log_format = "{module}:{function}:{line} -- {level} -- {message}"
+    stagei_logger_id = logger.add(log_fname, format=log_format, enqueue=True)
 
     # Todo: check for it if given vtempalte the values for betas should be zeros
     num_train_markers = 46  # constant
@@ -415,6 +420,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         stagei_debug_details['v_template'] = can_model.v_template.r
 
     stagei_data['stagei_debug_details'] = stagei_debug_details
+    logger.remove(stagei_logger_id)
 
     return stagei_data
 
