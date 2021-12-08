@@ -366,7 +366,7 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
             body_mesh.apply_transform(trimesh.transformations.rotation_matrix(np.radians(90), (1, 0, 0)))
 
         if out_fname is not None:
-            assert out_fname.endswith('.ply')
+            assert out_fname.endswith('.ply'), ValueError(f'out_fname should be a valid ply file: {out_fname}')
             if preserve_vertex_order:
                 body_mrk_mesh.write_ply(out_fname)
             else:
@@ -397,6 +397,7 @@ def marker_layout_to_c3d(marker_layout_fname, surface_model_fname, out_c3d_fname
     """
     if out_c3d_fname is None:
         out_c3d_fname = marker_layout_fname.replace('.json', '.c3d')
+    assert out_c3d_fname.endswith('.c3d'), ValueError(f'out_c3d_fname should be a valid c3d file {out_c3d_fname}')
 
     mocap = marker_layout_as_mesh(surface_model_fname)(marker_layout_fname)
     markers = mocap['markers'] + [0, 1.3, 0]
