@@ -35,6 +35,7 @@
 import pickle
 import sys
 import time
+from copy import deepcopy
 from datetime import timedelta
 from glob import glob
 from os import path as osp
@@ -53,6 +54,11 @@ from moshpp import frame_picker
 from moshpp.marker_layout.create_marker_layout_for_mocaps import marker_labels_to_marker_layout
 from moshpp.marker_layout.labels_map import general_labels_map
 from moshpp.tools.run_tools import turn_fullpose_into_parts, setup_mosh_omegaconf_resolvers
+from moshpp.marker_layout.edit_tools import marker_layout_as_mesh
+from moshpp.marker_layout.edit_tools import marker_layout_load
+from moshpp.marker_layout.edit_tools import marker_layout_to_c3d
+from moshpp.marker_layout.edit_tools import marker_layout_write
+from moshpp.marker_layout.labels_map import general_labels_map
 
 
 class MoSh:
@@ -195,8 +201,7 @@ class MoSh:
 
             logger.info(f'loading mosh stagei results from {self.stagei_fname}')
         else:
-            stagei_frames, stagei_fnames = self.prepare_stagei_frames(
-                self.cfg.moshpp.stagei_frame_picker.stagei_mocap_fnames)
+            stagei_frames, stagei_fnames = self.prepare_stagei_frames(self.cfg.moshpp.stagei_frame_picker.stagei_mocap_fnames)
 
             if not osp.exists(self.cfg.dirs.marker_layout_fname):
                 logger.debug('Marker layout not available. It will be produced ...')
@@ -229,6 +234,8 @@ class MoSh:
 
             logger.debug(f'finished mosh stagei in {timedelta(seconds=stagei_elapsed_time)}')
             self.stagei_data = stagei_data
+
+            MoSh.dump_stagei_marker_layout(self.stagei_fname)
 
         return self.stagei_fname
 
@@ -265,6 +272,29 @@ class MoSh:
             self.stageii_data = stageii_data
 
         return self.stageii_fname
+
+    @staticmethod
+    def dump_stagei_marker_layout(mosh_stagei_pkl_fname, out_marker_layout_fname=None):
+        mosh_stagei = pickle.load(open(mosh_stagei_pkl_fname, 'rb'))
+
+        marker_meta = MoSh.extract_marker_layout_from_mosh(mosh_stagei)
+        if out_marker_layout_fname is None:
+            out_marker_layout_fname = mosh_stagei_pkl_fname.replace('.pkl', '.json')
+
+        output_ply_fname = mosh_stagei_pkl_fname.replace('.pkl', '.ply')
+        output_c3d_fname = mosh_stagei_pkl_fname.replace('.pkl', '.c3d')
+
+        surface_model_fname = mosh_stagei['stagei_debug_details']['cfg']['surface_model']['fname']
+        if surface_model_fname.endswith('.pkl'):
+            surface_model_fname = surface_model_fname.replace('.pkl', '.npz')
+        marker_layout_write(marker_meta, out_marker_layout_fname)
+
+        marker_layout_as_mesh(surface_model_fname, preserve_vertex_order=True)(out_marker_layout_fname,output_ply_fname)
+        marker_layout_to_c3d(out_marker_layout_fname, surface_model_fname=surface_model_fname, out_c3d_fname=output_c3d_fname)
+
+        logger.info(f'created {out_marker_layout_fname}')
+        logger.info(f'created {output_ply_fname}')
+        logger.info(f'created {output_c3d_fname}')
 
     @staticmethod
     def load_as_amass_npz_legacy(stageii_pkl_data_or_fname: Union[dict, Union[str, Path]],
@@ -481,9 +511,11 @@ class MoSh:
         return OmegaConf.merge(base_cfg, override_cfg, dict_cfg)
 
     @staticmethod
-    def extract_marker_layout_from_mosh(mosh_stagei_fname) -> dict:
-        from copy import deepcopy
-        mosh_stagei = pickle.load(open(mosh_stagei_fname, 'rb'))
+    def extract_marker_layout_from_mosh(mosh_stagei_pkl_fname: Union[str, dict]) -> dict:
+        if not isinstance(mosh_stagei_pkl_fname, dict):
+            mosh_stagei = pickle.load(open(mosh_stagei_pkl_fname, 'rb'))
+        else:
+            mosh_stagei = mosh_stagei_pkl_fname
 
         opt_marker_vids = mosh_stagei['markers_latent_vids']
         marker_meta = deepcopy(mosh_stagei['marker_meta'])
