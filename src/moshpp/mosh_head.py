@@ -205,7 +205,7 @@ class MoSh:
             stagei_frames, stagei_fnames = self.prepare_stagei_frames(self.cfg.moshpp.stagei_frame_picker.stagei_mocap_fnames)
 
             if not osp.exists(self.cfg.dirs.marker_layout_fname):
-                logger.debug('Marker layout not available. It will be produced ...')
+                logger.debug(f'Marker layout not available. It will be produced: {self.cfg.dirs.marker_layout_fname}')
                 marker_labels_to_marker_layout(chosen_markers=flatten_list([list(d.keys()) for d in stagei_frames]),
                                                marker_layout_fname=self.cfg.dirs.marker_layout_fname,
                                                surface_model_type=self.cfg.surface_model.type,

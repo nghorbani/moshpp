@@ -298,6 +298,33 @@ all_marker_vids = {'smpl': {'ARIEL': 411,
                        "LCHEEK3": 9179,
                        "LCHEEK4": 2081,
                        "LCHEEK5": 9168,
+                       # 'LETPIPOUT': 5321,
+                       'LETPIPIN': 5313,
+                       'LETMP': 4840,
+                       'LEIDIP': 4897,
+                       'LEBHI': 4747,
+                       'LEMDIP': 5020,
+                       'LEBHM': 4828,
+                       'LERTIP': 5151,
+                       'LERDIP': 5131,
+                       'LERPIP': 5114,
+                       'LEBHR': 4789,
+                       'LEPDIP': 5243,
+                       'LEPPIP': 5232,
+                       'LEBHP': 4676,
+                       'RITPIPOUT': 8057,
+                       'RITPIPIN': 8049,
+                       'RITMP': 7581,
+                       'RIIDIP': 7633,
+                       'RIBHI': 7483,
+                       'RIMDIP': 7756,
+                       'RIBHM': 7564,
+                       'RIRDIP': 7867,
+                       'RIRPIP': 7850,
+                       'RIBHR': 7525,
+                       'RIPDIP': 7984,
+                       'RIPPIP': 7968,
+                       'RIBHP': 7412
                    }
                    }
 
@@ -317,14 +344,19 @@ marker_type_labels = {
         "LMID1", "LMID2", "LMID3",
         "LPNK1", "LPNK2", "LPNK3",
         "LRNG1", "LRNG2", "LRNG3",
-        "LTHM1", "LTHM2", "LTHM3", "LTHM4", "LTHM6"
+        "LTHM1", "LTHM2", "LTHM3", "LTHM4", "LTHM6",
+        'LETPIPOUT', 'LETPIPIN', 'LETMP', 'LEIDIP', 'LEBHI', 'LEMDIP','LEPTIP', 'LETTIP',
+        'LEBHM', 'LERTIP', 'LERDIP', 'LERPIP', 'LEBHR', 'LEPDIP', 'LEPPIP', 'LEBHP'
+
     ],
     'finger_right': [
         "RIDX1", "RIDX2", "RIDX3",
         "RMID1", "RMID2", "RMID3",
         "RPNK1", "RPNK2", "RPNK3",
         "RRNG1", "RRNG2", "RRNG3",
-        "RTHM1", "RTHM2", "RTHM3", "RTHM4"
+        "RTHM1", "RTHM2", "RTHM3", "RTHM4",
+        'RITPIPOUT', 'RITPIPIN', 'RITMP', 'RIIDIP', 'RIBHI', 'RIMDIP','RITTIP', 'RIIPIP',
+        'RIBHM', 'RIRTIP', 'RIRDIP', 'RIRPIP', 'RIBHR', 'RIPDIP', 'RIPPIP', 'RIBHP', 'RIMPIP'
     ],
     'face': [
         "CHN1", "CHN2",
