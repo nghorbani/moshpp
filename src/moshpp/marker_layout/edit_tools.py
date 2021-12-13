@@ -292,7 +292,7 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
         pose_body_pt = torch.from_numpy(pose_body.reshape(1, -1)).type(torch.float)
         body_parms = {'pose_body': pose_body_pt}
 
-    bm = BodyModel(surface_model_fname)
+    bm = BodyModel(surface_model_fname, num_betas=body_parms.get('num_betas', 10))
     body = bm(**body_parms)
 
     dtvn = c2c(Meshes(verts=body.v, faces=body.f.expand(len(body.v), -1, -1)).verts_normals_packed())
@@ -500,7 +500,7 @@ def randomize_marker_layout_vids(marker_vids,
             vid_neighbours = {k: flatten_list([v_neighbors(vid, n_ring=n_ring) for vid in vids]) + vids for k, vids in
                               marker_vids.items()}
         else:
-            assert 'body' in marker_type_mask
+            assert 'body' in marker_type_mask, ValueError(f'body not available marker_types: {marker_type_mask.keys()}')
             vid_neighbours = {
                 k: flatten_list([v_neighbors(vid, n_ring=n_ring) for vid in vids]) + vids if isbody else vids for
                 (k, vids), isbody in zip(marker_vids.items(), marker_type_mask['body'])}
@@ -508,7 +508,7 @@ def randomize_marker_layout_vids(marker_vids,
         if enable_rnd_vid_on_face_hands:
             vid_neighbours = {k: v_neighbors(vid, n_ring=n_ring) + [vid] for k, vid in marker_vids.items()}
         else:
-            assert 'body' in marker_type_mask
+            assert 'body' in marker_type_mask, ValueError(f'body not available marker_types: {marker_type_mask.keys()}')
             vid_neighbours = {k: v_neighbors(vid, n_ring=n_ring) + [vid] if isbody else [vid] for (k, vid), isbody in
                               zip(marker_vids.items(), marker_type_mask['body'])}
 

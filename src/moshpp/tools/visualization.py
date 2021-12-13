@@ -60,7 +60,7 @@ def visualize_shape_estimate(opt_models, can_model, markers_sim, markers_obs, ma
 
     mvs_raw = MeshViewers(window_width=640, window_height=480, shape=(sz, sz))
     mvs = reduce(lambda x, y: x + y, mvs_raw)
-    mv_canonical = MeshViewer(window_width=640, window_height=480, keepalive=True)
+    mv_canonical = MeshViewer(window_width=640, window_height=480, keepalive=False)
     mv_canonical.set_background_color(np.array([1., 1., 1.]))
     mvs[0].set_background_color(np.array([1., 1., 1.]))
 

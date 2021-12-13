@@ -133,6 +133,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
     can_model, opt_models = load_moshpp_models(surface_model_fname=cfg.surface_model.fname,
                                                surface_model_type=cfg.surface_model.type,
+                                               optimize_face=cfg.moshpp.optimize_face,
                                                num_beta_shared_models=cfg.moshpp.stagei_frame_picker.num_frames,
                                                pose_hand_prior_fname=cfg.moshpp.pose_hand_prior_fname,
                                                pose_body_prior_fname=cfg.moshpp.pose_body_prior_fname,

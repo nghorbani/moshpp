@@ -68,7 +68,7 @@ def write_mocap_c3d(markers: np.ndarray, labels: list, out_c3d_fname: str, frame
     y = markers[:, :, 1:2]
     z = markers[:, :, 2:3]
     pts = np.concatenate([x, z, -y],  axis=-1)
-    pts = rotate_points_xyz(pts, [90,0,0]).reshape(pts.shape)
+    # pts = rotate_points_xyz(pts, [90,0,0]).reshape(pts.shape)
 
     pts_extra = np.concatenate([np.ones([markers.shape[0], markers.shape[1], 1]),
                              np.zeros([markers.shape[0], markers.shape[1], 1])], axis=-1)
@@ -333,9 +333,9 @@ class MocapSession(object):
 
 
 if __name__ == '__main__':
-    # mocap_fname = '/home/nghorbani/Dropbox/session17_take4_01.c3d'
-    mocap_fname = '/ps/project/amass/MOCAP/FB/FB_Talking_with_hands/mocap_flattened/FB32M_chopped_1000/session17/session17_take3_01_part_05.c3d'
-    # mocap_fname = '/ps/project/amass/MOCAP/FB/FB_Talking_with_hands/mocap_flattened/FB32M/session17/session17_take3_01.c3d'
+    mocap_fname = '/is/cluster/scratch/soma/training_experiments/V48_02_MPI124/OC_05_G_03_real_000_synt_100/evaluations/soma_labeled_mocap_tracklet/ASL_Unlabeled/210805_03586/Vater.c3d'
+    out_mocap_fname = '/is/cluster/scratch/soma/training_experiments/V48_02_MPI124/OC_05_G_03_real_000_synt_100/evaluations/soma_labeled_mocap_tracklet/ASL_Unlabeled/210805_03586/aa.pkl'
+
     mocap = MocapSession(mocap_fname, mocap_unit='mm', ignore_stared_labels=False)#, mocap_rotate=[90,0,0])
     a = mocap.markers_asdict()
     print(a[0])
@@ -343,14 +343,18 @@ if __name__ == '__main__':
     print(len(mocap.labels), mocap.labels)
     print(mocap.frame_rate)
     print(mocap.time_length())
-    # print(mocap._marker_data['labels_perframe'])
-    mocap.play_mocap_trajectories(radius=0.03)
-    # write_mocap_c3d(
-    #     markers= mocap.markers[:10000]*10,
-    #     labels=mocap.labels,
-    #     frame_rate=mocap.frame_rate,
-    #     out_c3d_fname='/home/nghorbani/Dropbox/FB_100.c3d'
-    # )
-    # mocap = MocapSession('/home/nghorbani/Dropbox/FB_100.c3d', mocap_unit='mm', ignore_stared_labels=False)
+    #
+    # pickle.dump({'frame_rate':mocap.frame_rate, 'markers':mocap.markers*1000., 'labels':mocap.labels},
+    #             open(out_mocap_fname,'wb'))
+    #
+    # # print(mocap._marker_data['labels_perframe'])
+    mocap.play_mocap_trajectories(radius=0.03, delay=1)
+    # # write_mocap_c3d(
+    # #     markers= mocap.markers,#[:100],
+    # #     labels=mocap.labels,
+    # #     frame_rate=mocap.frame_rate,
+    # #     out_c3d_fname=out_mocap_fname
+    # # )
+    # mocap = MocapSession(out_mocap_fname, mocap_unit='mm', ignore_stared_labels=False)
     #
     # mocap.play_mocap_trajectories(radius=0.003)

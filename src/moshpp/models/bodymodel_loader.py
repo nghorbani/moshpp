@@ -79,6 +79,7 @@ class AliasedBetas(ch.Ch):
 
 def load_moshpp_models(surface_model_fname,
                        surface_model_type,
+                       optimize_face=False,
                        pose_body_prior_fname=None,
                        pose_hand_prior_fname=None,
                        use_hands_mean=False,
@@ -117,14 +118,14 @@ def load_moshpp_models(surface_model_fname,
                   'pose': create_gmm_body_prior(pose_body_prior_fname=pose_body_prior_fname,
                                                 exclude_hands=surface_model_type in ['smplh', 'smplx'])
                   }
-        if surface_model_type != 'smplx':
+        if not optimize_face:
             priors['betas'] = AliasedBetas(sv=can_model, surface_model_type=surface_model_type)
 
         can_model.priors = priors
 
         beta_shared_models = [SmplModelLBS(pose=ch.array(np.zeros(can_model.pose.size)),
-                                            trans=ch.array(np.zeros(can_model.trans.size)),
-                                            betas=can_model.betas if surface_model_type != 'smplx' else ch.array(np.zeros(can_model.betas.size)),
-                                            temp_model=can_model) for _ in range(num_beta_shared_models)]
+                                           trans=ch.array(np.zeros(can_model.trans.size)),
+                                           betas=can_model.betas if not optimize_face else ch.array(np.zeros(can_model.betas.size)),
+                                           temp_model=can_model) for _ in range(num_beta_shared_models)]
 
     return can_model, beta_shared_models
