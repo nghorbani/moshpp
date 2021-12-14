@@ -65,8 +65,9 @@ def load_surface_model(surface_model_fname,
     #     assert model_type in ['mano', 'smplx', 'smplh']
 
     if v_template_fname is not None:
-        v_template = Mesh(filename=v_template_fname).v
         assert osp.exists(v_template_fname), FileExistsError(v_template_fname)
+
+        v_template = Mesh(filename=v_template_fname).v
         dd['v_template'] = v_template
         logger.info(f'Using v_template_fname: {v_template_fname}')
 
