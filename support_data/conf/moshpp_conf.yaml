@@ -122,3 +122,6 @@ opt_weights:
     stageii_wt_poseH: 0.4
     stageii_wt_poseF: 15.0 # 26.31
     stageii_wt_annealing: 2.5
+
+runtime:
+  stagei_only: False

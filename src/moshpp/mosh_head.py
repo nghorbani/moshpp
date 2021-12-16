@@ -554,7 +554,8 @@ def run_moshpp_once(cfg):
     logger.debug('Final mosh stagei loss: {}'.format(' | '.join(
         [f'{k} = {np.sum(v ** 2):2.2e}' for k, v in mp.stagei_data['stagei_debug_details']['stagei_errs'].items()])))
 
-    mp.mosh_stageii(mosh_stageii)
-    logger.debug('Final mosh stageii loss: {}'.format(' | '.join(
-        [f'{k} = {np.sum(v ** 2):2.2e}' for k, v in
-         mp.stageii_data['stageii_debug_details']['stageii_errs'].items()])))
+    if not mp.cfg.runtime.stagei_only:
+        mp.mosh_stageii(mosh_stageii)
+        logger.debug('Final mosh stageii loss: {}'.format(' | '.join(
+            [f'{k} = {np.sum(v ** 2):2.2e}' for k, v in
+             mp.stageii_data['stageii_debug_details']['stageii_errs'].items()])))
