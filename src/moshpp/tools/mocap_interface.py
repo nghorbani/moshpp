@@ -47,45 +47,41 @@ from psbody.mesh.meshviewer import MeshViewer
 from psbody.mesh.sphere import Sphere
 
 
-def write_mocap_c3d(markers: np.ndarray, labels: list, out_c3d_fname: str, frame_rate: int = 120):
+def write_mocap_c3d(markers: np.ndarray, labels: list, out_mocap_fname: str, frame_rate: int = 120):
     """
     Here we are c3d package since ezc3d has a bug by writing nan points which causes non-negative residual values for them
     non-negative residuals for nan points means they wont be shown as occluded in a standard mocap tool
     :param markers:
     :param labels:
-    :param out_c3d_fname:
+    :param out_mocap_fname:
     :param frame_rate:
     """
     # todo: add the ability to write at any scale. alternatively make it standard to mm
-    assert out_c3d_fname.endswith('.c3d')
-    from moshpp.tools import c3d
+    assert out_mocap_fname.endswith('.c3d')
 
-    writer = c3d.Writer(point_rate=frame_rate)
+    writer = ezc3d.c3d()
 
-    markers = markers * 1000
+    writer['parameters']['POINT']['RATE']['value'] = [frame_rate]
+    writer['parameters']['POINT']['LABELS']['value'] = labels
 
-    x = markers[:, :, 0:1]
-    y = markers[:, :, 1:2]
-    z = markers[:, :, 2:3]
-    pts = np.concatenate([x, z, -y],  axis=-1)
-    # pts = rotate_points_xyz(pts, [90,0,0]).reshape(pts.shape)
+    markers = markers * 1000.
 
-    pts_extra = np.concatenate([np.ones([markers.shape[0], markers.shape[1], 1]),
-                             np.zeros([markers.shape[0], markers.shape[1], 1])], axis=-1)
+    pts = markers
+    pts_extra = np.zeros([markers.shape[0], markers.shape[1], 1])
     points = np.concatenate([pts, pts_extra], axis=-1).astype(float)
 
-    for t in range(points.shape[0]):  # for each frame
+    nan_mask = (np.logical_or(pts == 0, np.isnan(pts))).sum(-1) == 3
+    nan_mask_repeated = np.repeat(nan_mask[:,:,None], repeats=4, axis=-1)
+    points[nan_mask_repeated] = np.nan
 
-        zero_mask = ((points[t] == 0).sum(-1) == 4)
-        if zero_mask.sum() != 0:
-            points[t, zero_mask, 3] = -1
-            points[t, zero_mask, :3] = np.nan
+    residuals = np.ones(points.shape[:-1])
+    residuals[nan_mask] = -1
+    residuals = residuals[:,:,None]
 
-        writer.add_frames([(points[t, :], np.array([[]]))])
+    writer['data']['points'] = points.transpose([2,1,0])
 
-    with open(out_c3d_fname, 'wb') as h:
-        writer.write(h, labels)
-
+    writer['data']['meta_points']['residuals'] = residuals.transpose([2,1,0])
+    writer.write(out_mocap_fname)
 
 def read_mocap(mocap_fname):
     labels = None
@@ -260,7 +256,7 @@ class MocapSession(object):
 
     def write_as_c3d(self, out_c3d_fname: Union[str, Path]):
         write_mocap_c3d(markers=self.markers, labels=self.labels,
-                        frame_rate=self.frame_rate, out_c3d_fname=out_c3d_fname)
+                        frame_rate=self.frame_rate, out_mocap_fname=out_c3d_fname)
 
     def write_as_npz(self, out_npz_fname: Union[str, Path]):
         assert out_npz_fname.endswith('.npz')

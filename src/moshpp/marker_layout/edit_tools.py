@@ -406,7 +406,7 @@ def marker_layout_to_c3d(marker_layout_fname, surface_model_fname, out_c3d_fname
 
     write_mocap_c3d(markers=markers,
                     labels=mocap['labels'],
-                    out_c3d_fname=out_c3d_fname,
+                    out_mocap_fname=out_c3d_fname,
                     frame_rate=60)
 
 
