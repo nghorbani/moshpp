@@ -7,7 +7,6 @@ mocap:
   rotate:
   exclude_markers:
   exclude_marker_types:
-    - face
   only_markers:
   start_fidx: 0 # start frame id
   end_fidx: -1 # end frame id
@@ -42,9 +41,9 @@ moshpp:
   betas_fname:
 
   separate_types:
-    - 'body'
-    - 'face'
-    - 'finger'
+    - body
+    - face
+    - finger
 
   stagei_frame_picker:
     type: random_strict
@@ -74,6 +73,28 @@ opt_settings:
   extra_initial_rigid_adjustment: false
 
 opt_weights:
+  smplh:
+    stagei_wt_poseH: 3.0
+    stagei_wt_poseF: 3.
+    stagei_wt_expr: 34.
+    stagei_wt_pose: 3.
+    stagei_wt_poseB: 3.
+    stagei_wt_init_finger_left: 400.0
+    stagei_wt_init_finger_right: 400.0
+    stagei_wt_init_finger: 400.0
+    stagei_wt_betas: 10.
+    stagei_wt_init: 300
+    stagei_wt_data: 75.
+    stagei_wt_surf: 10000.
+    stagei_wt_annealing: [ 1., .5, .25, .125 ]
+    stageii_wt_data: 400
+    stageii_wt_velo: 2.5
+    stageii_wt_dmpl: 1.0
+    stageii_wt_expr: 1.0
+    stageii_wt_poseB: 1.6
+    stageii_wt_poseH: 1.0
+    stageii_wt_poseF: 1.0
+    stageii_wt_annealing: 2.5
   smplx:
     stagei_wt_poseH: 3.0
     stagei_wt_poseF: 3.

@@ -40,6 +40,7 @@ import numpy as np
 from moshpp.models.smpl_fast_derivatives import SmplModelLBS
 from moshpp.models.smpl_fast_derivatives import load_surface_model
 from moshpp.models.smpl_fast_derivatives import SmplModelLBS
+from loguru import logger
 
 def load_dmpl(pkl_path):
     with open(pkl_path) as f:
@@ -89,6 +90,7 @@ def load_moshpp_models(surface_model_fname,
     """
     load model
     """
+    logger.info(f'Loading model: {surface_model_fname}')
 
     if surface_model_type == 'object':
         from moshpp.models.object_model import RigidObjectModel
@@ -104,8 +106,7 @@ def load_moshpp_models(surface_model_fname,
                                        dof_per_hand=dof_per_hand,
                                        v_template_fname=v_template_fname)
 
-
-        betas = ch.array(np.zeros(400))
+        betas = ch.array(np.zeros(len(sm_temp.betas)))
 
         can_model = SmplModelLBS(trans=ch.array(np.zeros(sm_temp.trans.size)),
                               pose=ch.array(np.zeros(sm_temp.pose.size)),
