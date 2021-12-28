@@ -39,6 +39,7 @@ from typing import List, Dict, Union
 import chumpy as ch
 import numpy as np
 from human_body_prior.tools.omni_tools import flatten_list
+from human_body_prior.tools.omni_tools import makepath
 from loguru import logger
 from omegaconf import DictConfig
 from psbody.mesh import Mesh
@@ -52,7 +53,7 @@ from moshpp.scan2mesh.mesh_distance_main import PtsToMesh
 from moshpp.tools.mocap_interface import MocapSession
 from moshpp.tools.visualization import visualize_pose_estimate, visualize_shape_estimate
 from moshpp.transformed_lm import TransformedCoeffs, TransformedLms
-from human_body_prior.tools.omni_tools import makepath
+
 
 def prepare_mosh_markers_latent(can_model, marker_meta):
     can_v = can_model.r
@@ -104,7 +105,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     num_train_markers = 46  # constant
 
     if cfg.surface_model.type == 'smplx' and cfg.moshpp.optimize_betas and (
-            cfg.mocap.exclude_marker_types is None or 'face' not in cfg.mocap.exclude_marker_types):
+            cfg.mocap.exclude_marker_types is not None and 'face' in cfg.mocap.exclude_marker_types):
         logger.info(
             'For optimizing face markers in smplx chumpy implementation you should set optimize_betas to False.\n'
             'Otherwise face markers must be excluded and optimize_face must be false. '
