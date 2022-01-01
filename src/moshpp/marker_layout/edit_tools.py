@@ -85,7 +85,8 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
                        include_nan: bool = True,
                        exclude_marker_types: List[str] = None,
                        exclude_markers: List[str] = None,
-                       only_markers: List[str] = None
+                       only_markers: List[str] = None,
+                       verbosity: int = 1,
                        ) -> Markerlayout:
     """
     :param marker_layout_fname: a json file for the marker layout data
@@ -125,8 +126,12 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
     else:
         surface_model_type = d['surface_model_type']
 
-    logger.info(f'Loading marker layout: {marker_layout_fname}')
-    logger.info('Available marker types: {}. Total: {} markers.'.format({markerset['type']:len(markerset['indices']) for markerset in sorted(d['markersets'], key=lambda a: a['type'])}, sum([len(markerset['indices']) for markerset in d['markersets']])))
+    if verbosity > 0:
+        logger.info(f'Loading marker layout: {marker_layout_fname}')
+        logger.info('Available marker types: {}. Total: {} markers.'.format(
+            {markerset['type']: len(markerset['indices']) for markerset in
+             sorted(d['markersets'], key=lambda a: a['type'])},
+            sum([len(markerset['indices']) for markerset in d['markersets']])))
 
     for markerset in sorted(d['markersets'], key=lambda a: a['type']):
         marker_type = markerset['type']
@@ -143,7 +148,7 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
         for label in sorted(cur_marker_vids):
             if only_markers and label not in only_markers: continue
             if label in exclude_markers:
-                logger.info(f'excluding label {label}')
+                logger.debug(f'excluding label {label}')
             vid = cur_marker_vids[label]
             if label in marker_vids: raise ValueError(f'Label ({label}) is present in multiple occasions.')
             marker_vids[label] = vid
