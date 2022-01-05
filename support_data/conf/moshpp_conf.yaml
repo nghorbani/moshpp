@@ -1,7 +1,12 @@
 mocap:
   fname: ???
   ds_name: ${resolve_mocap_ds_name:${mocap.fname}}
-  subject_name: ${resolve_mocap_subject:${mocap.fname}}
+  subject_id: 0 # we use id instead of direct names to avoid knowing the subject name beforehand
+  subject_names: ${resolve_mocap_subjects:${mocap.fname}}
+  # only one subject can be processed at a time
+  subject_name: ${resolve_subject_name:${mocap.subject_names}, ${mocap.subject_id}}
+  multi_subject: ${resolve_multi_subject:${mocap.subject_names}}
+  session_name: ${resolve_mocap_session:${mocap.fname}}
   basename: ${resolve_mocap_basename:${mocap.fname}}
   unit: mm # default unit for c3d is mm
   rotate:
@@ -22,7 +27,7 @@ surface_model:
   dof_per_hand: 24
   num_expressions: 80
   use_hands_mean: true
-  gender: ${resolve_gender:${mocap.fname},error} #/male/female/neutral
+  gender: ${resolve_gender:${mocap.fname}, error, ${mocap.subject_name}, ${mocap.multi_subject}} #/male/female/neutral
 
 moshpp:
   head_marker_corr_fname: ${dirs.support_base_dir}/ssm_head_marker_corr.npz
@@ -60,9 +65,11 @@ dirs:
 
   marker_layout_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.ds_name}_${surface_model.type}.json
 
-  stagei_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.subject_name}/${surface_model.gender}_stagei.pkl
-  stageii_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.subject_name}/${mocap.basename}_stageii.pkl
-  log_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.subject_name}/${mocap.basename}.log
+  session_subject_subfolders: ${ifelse:${mocap.multi_subject}, ${mocap.session_name}/${mocap.subject_name}, ${mocap.session_name}}
+
+  stagei_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${surface_model.gender}_stagei.pkl
+  stageii_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${mocap.basename}_stageii.pkl
+  log_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${mocap.basename}.log
 
 opt_settings:
   weights_type: ${surface_model.type}

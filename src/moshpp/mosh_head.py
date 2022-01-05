@@ -53,13 +53,11 @@ from omegaconf import OmegaConf, DictConfig
 
 from moshpp import frame_picker
 from moshpp.marker_layout.create_marker_layout_for_mocaps import marker_labels_to_marker_layout
-from moshpp.marker_layout.labels_map import general_labels_map
-from moshpp.tools.run_tools import turn_fullpose_into_parts, setup_mosh_omegaconf_resolvers
 from moshpp.marker_layout.edit_tools import marker_layout_as_mesh
-from moshpp.marker_layout.edit_tools import marker_layout_load
 from moshpp.marker_layout.edit_tools import marker_layout_to_c3d
 from moshpp.marker_layout.edit_tools import marker_layout_write
 from moshpp.marker_layout.labels_map import general_labels_map
+from moshpp.tools.run_tools import turn_fullpose_into_parts, setup_mosh_omegaconf_resolvers
 
 
 class MoSh:
@@ -72,22 +70,25 @@ class MoSh:
 
         self.cfg = MoSh.prepare_cfg(dict_cfg=dict_cfg, **kwargs)
 
-        # we bake the gender into the config so that it is not dependent on the settings.json file
-        self.cfg.surface_model.gender = f"{self.cfg.surface_model.gender}"
+        logger.remove()
+        if self.cfg.moshpp.verbosity > 0:
+            makepath(self.cfg.dirs.log_fname, isfile=True)
+
+            log_format = f"{self.cfg.mocap.session_name} -- {self.cfg.mocap.basename} -- " + \
+                         (f"{self.cfg.mocap.subject_name} -- " if self.cfg.mocap.multi_subject else "") + \
+                         f"{{module}}:{{function}}:{{line}} -- {{message}}"
+            logger.add(self.cfg.dirs.log_fname, format=log_format, enqueue=True)
+            logger.add(sys.stdout, colorize=True, format=f"<level>{log_format}</level>", enqueue=True)
+
+        if self.cfg.mocap.multi_subject:
+            logger.info('MoCap is multi subject. Available subjects (id:name): {}'.format(
+                {sid: sname for sid, sname in enumerate(self.cfg.mocap.subject_names)}))
+            logger.info(f'mocap.subject_id: {self.cfg.mocap.subject_id} is selected: {self.cfg.mocap.subject_name}')
 
         self.stagei_fname = self.cfg.dirs.stagei_fname
         self.stageii_fname = self.cfg.dirs.stageii_fname
 
         if self.cfg.moshpp.verbosity < 0: return  # this is just a status call
-
-        logger.remove()
-        if self.cfg.moshpp.verbosity > 0:
-            makepath(self.cfg.dirs.log_fname, isfile=True)
-
-            log_format = f"{self.cfg.mocap.subject_name} -- {self.cfg.mocap.basename} --" \
-                         f" {{module}}:{{function}}:{{line}} -- {{message}}"
-            logger.add(self.cfg.dirs.log_fname, format=log_format, enqueue=True)
-            logger.add(sys.stdout, colorize=True, format=f"<level>{log_format}</level>", enqueue=True)
 
         logger.info(f'mocap_fname: {self.cfg.mocap.fname}')
 
@@ -101,12 +102,11 @@ class MoSh:
         logger.debug(f'gender: {self.cfg.surface_model.gender}')
         logger.debug(f'surface_model_fname: {self.cfg.surface_model.fname}')
 
-        logger.debug(
-            f'optimize_fingers: {self.cfg.moshpp.optimize_fingers}, '
-            f'optimize_face: {self.cfg.moshpp.optimize_face}, '
-            f'optimize_toes: {self.cfg.moshpp.optimize_toes}, '
-            f'optimize_betas: {self.cfg.moshpp.optimize_betas}, '
-            f'optimize_dynamics: {self.cfg.moshpp.optimize_dynamics}')
+        logger.debug(f'optimize_fingers: {self.cfg.moshpp.optimize_fingers}, '
+                     f'optimize_face: {self.cfg.moshpp.optimize_face}, '
+                     f'optimize_toes: {self.cfg.moshpp.optimize_toes}, '
+                     f'optimize_betas: {self.cfg.moshpp.optimize_betas}, '
+                     f'optimize_dynamics: {self.cfg.moshpp.optimize_dynamics}')
 
         if self.cfg.surface_model.type in ['smplh', 'smplx', 'mano'] and self.cfg.moshpp.optimize_fingers:
             logger.debug(f'optimizing for fingers. dof_per_hand = {self.cfg.surface_model.dof_per_hand}')
@@ -120,6 +120,14 @@ class MoSh:
                                                          f'{self.cfg.surface_model.type}_{self.cfg.mocap.ds_name}.json')
         self.stagei_data = None
         self.stageii_data = None
+
+        # todo: find a better way to bake these values. maybe sing the omegaconf cache?
+        # enabling cache on these fields would do the job however it would disable reevaluation based on chenged subject id.
+        # when the field subject id changes we want the gender and subject name to be re-evaluated!
+        # we bake the gender into the config so that it is not dependent on the settings.json file
+        self.cfg.surface_model.gender = f"{self.cfg.surface_model.gender}"
+        self.cfg.mocap.subject_name = f"{self.cfg.mocap.subject_name}"
+        self.cfg.mocap.subject_names = self.cfg.mocap.subject_names
 
     def prepare_stagei_frames(self, stagei_mocap_fnames: List[str] = None):
 
@@ -153,6 +161,8 @@ class MoSh:
                                                                                     seed=frame_picker_cfg.seed,
                                                                                     least_avail_markers=frame_picker_cfg.least_avail_markers,
                                                                                     only_markers=self.cfg.mocap.only_markers,
+                                                                                    only_subjects=[
+                                                                                        self.cfg.mocap.subject_name],
                                                                                     exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                     labels_map=general_labels_map)
         elif frame_picker_cfg.type == 'random_strict':
@@ -163,6 +173,8 @@ class MoSh:
                                                                                            seed=frame_picker_cfg.seed,
                                                                                            least_avail_markers=frame_picker_cfg.least_avail_markers,
                                                                                            only_markers=self.cfg.mocap.only_markers,
+                                                                                           only_subjects=[
+                                                                                               self.cfg.mocap.subject_name],
                                                                                            exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                            labels_map=general_labels_map)
 
@@ -171,6 +183,8 @@ class MoSh:
                                                                                     mocap_unit=self.cfg.mocap.unit,
                                                                                     mocap_rotate=self.cfg.mocap.rotate,
                                                                                     only_markers=self.cfg.mocap.only_markers,
+                                                                                    only_subjects=[
+                                                                                        self.cfg.mocap.subject_name],
                                                                                     exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                     labels_map=general_labels_map)
 

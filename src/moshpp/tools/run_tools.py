@@ -39,6 +39,8 @@ import numpy as np
 from human_body_prior.tools.omni_tools import rm_spaces
 from omegaconf import OmegaConf
 
+from moshpp.tools.mocap_interface import MocapSession
+
 
 def universal_mosh_jobs_filter(total_jobs, only_stagei=False, determine_shape_for_each_seq=False):
     from moshpp.mosh_head import MoSh
@@ -77,6 +79,42 @@ def turn_fullpose_into_parts(fullpose, surface_model_type):
     return res
 
 
+def resolve_mosh_subject_gender(mocap_fname, fall_back_gender='error', subject_name=None, multi_subject=False):
+    """
+    the gender settings.json file is exptected to have {"gender":<gender>} data for single subject and
+    {"subject_name":{"gender":<gender>}} for multi subject case.
+    """
+    from omegaconf.errors import MissingMandatoryValue
+    if multi_subject:
+        if subject_name == '???': raise MissingMandatoryValue('mocap.subject_name')
+        assert subject_name is not None, ValueError(
+            f'For multi subject gender resolving the mocap.subject_name should be specified.')
+
+    gender_fname = osp.join(osp.dirname(mocap_fname), 'settings.json')
+
+    data = {}
+    if osp.exists(gender_fname):
+        data = json.load(open(gender_fname))
+
+    if multi_subject:
+        subject = data.get(subject_name, {})
+        gender = subject.get('gender', None)
+
+    else:
+        gender = data.get('gender', None)
+
+    if gender is None:
+        if fall_back_gender == 'error':
+
+            raise FileNotFoundError(
+                f'The gender of subject "{subject_name}" could not be determined from the settings file {gender_fname}'
+                if multi_subject else f'gender settings not found {gender_fname}')
+        else:
+            return fall_back_gender
+
+    return gender
+
+
 def setup_mosh_omegaconf_resolvers():
     """
     ds_name, subject name and mocap basename are automatically extracted from the mocap path.
@@ -86,21 +124,28 @@ def setup_mosh_omegaconf_resolvers():
     The file should be settings.json and the content as an example should be {'gender': female}
 
     """
-    def resolve_mosh_subject_gender(mocap_fname, fall_back_gender):
-        gender_fname = osp.join(osp.dirname(mocap_fname), 'settings.json')
 
-        if osp.exists(gender_fname):
-            gender = json.load(open(gender_fname))['gender']
-        else:
-            if fall_back_gender == 'error':
-                raise FileNotFoundError(f'gender file not available at {gender_fname}')
-            else:
-                gender = fall_back_gender
+    if not OmegaConf.has_resolver('ifelse'):
+        OmegaConf.register_new_resolver('ifelse',
+                                        lambda condition, a, b: a if condition else b)
 
-        return gender
+    if not OmegaConf.has_resolver('resolve_subject_name'):
+        OmegaConf.register_new_resolver('resolve_subject_name',
+                                        lambda subject_names, subject_id: subject_names[subject_id],
+                                        )  # use_cache=True) # should not use cache, so revaluation based on changed subject id works.
 
-    if not OmegaConf.has_resolver('resolve_mocap_subject'):
-        OmegaConf.register_new_resolver('resolve_mocap_subject',
+    if not OmegaConf.has_resolver('resolve_mocap_subjects'):
+        OmegaConf.register_new_resolver('resolve_mocap_subjects',
+                                        lambda mocap_fname: MocapSession(mocap_fname, 'mm').subject_names,
+                                        use_cache=True)
+
+    if not OmegaConf.has_resolver('resolve_multi_subject'):
+        OmegaConf.register_new_resolver('resolve_multi_subject',
+                                        lambda subject_names: len(subject_names) > 1,
+                                        use_cache=True)
+
+    if not OmegaConf.has_resolver('resolve_mocap_session'):
+        OmegaConf.register_new_resolver('resolve_mocap_session',
                                         lambda mocap_fname: rm_spaces(mocap_fname.split('/')[-2]))
 
     if not OmegaConf.has_resolver('resolve_mocap_basename'):
@@ -114,6 +159,8 @@ def setup_mosh_omegaconf_resolvers():
 
     if not OmegaConf.has_resolver('resolve_gender'):
         OmegaConf.register_new_resolver('resolve_gender',
-                                        lambda mocap_fname, fall_back_gender='error': resolve_mosh_subject_gender(
-                                            mocap_fname,
-                                            fall_back_gender))
+                                        lambda mocap_fname, fall_back_gender='error', subject_name=None,
+                                               multi_subject=False:
+                                        resolve_mosh_subject_gender(mocap_fname, fall_back_gender, subject_name,
+                                                                    multi_subject),
+                                        )  #use_cache=True) # should not use cache, so revaluation based on changed subject id works.

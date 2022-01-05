@@ -436,7 +436,10 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
                          mocap_unit=cfg.mocap.unit,
                          mocap_rotate=cfg.mocap.rotate,
                          labels_map=general_labels_map,
-                         # only_markers=latent_labels, # this is disable so that all point can appear in renders
+                         # only_markers is disabled so that all point can appear in renders.
+                         # This wont have an effect on mosh since only stage one labels will be used anyways
+                         # only_markers=latent_labels,
+                         only_subjects=[cfg.mocap.subject_name]
                          )
 
     logger.debug('Loaded mocap markers for mosh stageii')

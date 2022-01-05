@@ -41,6 +41,7 @@ from moshpp.tools.mocap_interface import MocapSession
 
 
 def load_marker_sessions_manual(mocap_fnames: List[str], mocap_unit: str, mocap_rotate: list = None,
+                                only_subjects: List[str] = None,
                                 only_markers=None, exclude_markers=None, labels_map={}):
     """
     in manual mode the stagei_mocap_fnames should be /path/to/mocap_framenumer.extention
@@ -55,6 +56,7 @@ def load_marker_sessions_manual(mocap_fnames: List[str], mocap_unit: str, mocap_
         all_fnames.append(key)
         all_frames.append(MocapSession(mocap_fname=frame_fname,
                                        mocap_unit=mocap_unit,
+                                       only_subjects=only_subjects,
                                        mocap_rotate=mocap_rotate,
                                        only_markers=only_markers,
                                        exclude_markers=exclude_markers,
@@ -68,6 +70,7 @@ def load_marker_sessions_manual(mocap_fnames: List[str], mocap_unit: str, mocap_
 
 def load_marker_sessions_random(mocap_fnames: List[str], mocap_unit: str, mocap_rotate: list = None,
                                 num_frames: int = 12,
+                                only_subjects: List[str] = None,
                                 seed: int = None, least_avail_markers: float = .1,
                                 only_markers=None, exclude_markers=None, labels_map={}):
     """
@@ -90,6 +93,7 @@ def load_marker_sessions_random(mocap_fnames: List[str], mocap_unit: str, mocap_
     fname_frame_to_markers = {}
     for fname in mocap_fnames:
         mocap = MocapSession(mocap_fname=fname, mocap_unit=mocap_unit, mocap_rotate=mocap_rotate,
+                             only_subject=only_subjects,
                              only_markers=only_markers, exclude_markers=exclude_markers, labels_map=labels_map)
         # Creating a dict of filename_frame# to observed markers so that we can refer back to this dict
         # if we need to find which file & frame number each observed marker-frame came from
@@ -136,7 +140,7 @@ def load_marker_sessions_random(mocap_fnames: List[str], mocap_unit: str, mocap_
                 f'Not enough frames were found that have at least %{least_avail_markers * 100.:.1f} of the markers.\n')
 
         return load_marker_sessions_random(mocap_fnames, mocap_unit=mocap_unit, mocap_rotate=mocap_rotate, seed=seed,
-                                           num_frames=num_frames,
+                                           num_frames=num_frames, only_subject=only_subjects,
                                            least_avail_markers=least_avail_markers, only_markers=only_markers,
                                            labels_map=labels_map)
     return reordered_frames, reordered_fnames
@@ -144,6 +148,7 @@ def load_marker_sessions_random(mocap_fnames: List[str], mocap_unit: str, mocap_
 
 def load_marker_sessions_random_strict(mocap_fnames: List[str], mocap_unit: str, mocap_rotate: list = None,
                                        num_frames: int = 12,
+                                       only_subjects: List[str] = None,
                                        seed: int = None, least_avail_markers: float = .1,
                                        only_markers=None, exclude_markers=None, labels_map={}):
     """
@@ -171,6 +176,7 @@ def load_marker_sessions_random_strict(mocap_fnames: List[str], mocap_unit: str,
                              mocap_unit=mocap_unit,
                              mocap_rotate=mocap_rotate,
                              only_markers=only_markers,
+                             only_subjects=only_subjects,
                              exclude_markers=exclude_markers,
                              labels_map=labels_map)
         marker_availability_norm = MocapSession.marker_availability_mask(mocap.markers)
