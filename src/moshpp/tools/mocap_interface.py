@@ -145,6 +145,8 @@ def read_mocap(mocap_fname):
     elif len(labels) < markers.shape[1]:
         labels = labels + [f'*{i}' for i in range(markers.shape[1] - len(labels))]
 
+    labels = [l.decode() if isinstance(l, bytes) else l for l in labels]
+
     subject_mask = []
     subject_id_map = {}
     for l in labels:
@@ -190,8 +192,7 @@ class MocapSession(object):
         mocap_read = read_mocap(mocap_fname)
         self._marker_data = mocap_read['_marker_data']  # this is used for SOMA evaluation to get per frame labels
 
-        labels = [l.decode() if isinstance(l, bytes) else l for l in mocap_read['labels']]
-        labels = [l.replace(' ', '') for l in labels]
+        labels = [l.replace(' ', '') for l in mocap_read['labels']]
 
         labels = np.vstack(labels).ravel()
         if remove_label_before_colon:
@@ -243,7 +244,7 @@ class MocapSession(object):
         self.labels = labels
         self.subject_mask = subject_mask
         self.subject_names = subject_names
-        self.multi_subject = len([s for s in subject_names if s]) > 1
+        self.multi_subject = len([s for s in subject_names if s != 'null']) > 1
 
         self.frame_rate = mocap_read.get('frame_rate', 120.)
         # self.frame_rate = 120. if self.frame_rate is None else 120.

@@ -124,6 +124,8 @@ def setup_mosh_omegaconf_resolvers():
     The file should be settings.json and the content as an example should be {'gender': female}
 
     """
+    if not OmegaConf.has_resolver('parent_key'):
+        OmegaConf.register_new_resolver("parent_key", lambda _parent_: _parent_._key())
 
     if not OmegaConf.has_resolver('ifelse'):
         OmegaConf.register_new_resolver('ifelse',

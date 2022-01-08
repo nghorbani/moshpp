@@ -36,6 +36,8 @@ moshpp:
 
   wrist_markers_on_stick: false
 
+  perseq_mosh_stagei: false
+
   optimize_fingers: false
   optimize_face: false
   optimize_toes: false
@@ -55,7 +57,7 @@ moshpp:
     seed: 100
     num_frames: 12
     least_avail_markers: 1.0 # [0,1.] with 1 being all the marker available
-    stagei_mocap_fnames: # sequences for stagei of mosh
+    stagei_mocap_fnames: ${ifelse:${moshpp.perseq_mosh_stagei}, [${mocap.fname}], null} # sequences for stagei of mosh
 
   verbosity: 1
 
@@ -63,11 +65,15 @@ dirs:
   support_base_dir: ???
   work_base_dir: ???
 
-  marker_layout_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${mocap.ds_name}_${surface_model.type}.json
+  markerlyout_basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.type}, ${mocap.ds_name}_${surface_model.type}}
+
+  marker_layout_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${ifelse:${moshpp.perseq_mosh_stagei},${dirs.session_subject_subfolders},${mocap.ds_name}}/${dirs.markerlyout_basename}.json
 
   session_subject_subfolders: ${ifelse:${mocap.multi_subject}, ${mocap.session_name}/${mocap.subject_name}, ${mocap.session_name}}
 
-  stagei_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${surface_model.gender}_stagei.pkl
+  stagei_basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.gender}, ${surface_model.gender}}
+
+  stagei_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${dirs.stagei_basename}_stagei.pkl
   stageii_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${mocap.basename}_stageii.pkl
   log_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${mocap.basename}.log
 
