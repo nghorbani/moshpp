@@ -48,8 +48,13 @@ def universal_mosh_jobs_filter(total_jobs, only_stagei=False, determine_shape_fo
     filtered_jobs = []
     exclude_keys = []
     for cur_job in total_jobs:
-        mocap_key = '_'.join(cur_job['mocap.fname'].split('/')[-3:-1])
+        mocap_fname_split = cur_job['mocap.fname'].split('/')
+        mocap_key = '_'.join(mocap_fname_split[-3:-1])
         mosh_cfg = MoSh.prepare_cfg(**copy.deepcopy(cur_job))
+        if mosh_cfg.moshpp.perseq_mosh_stagei:
+            mocap_key += f'_{mocap_fname_split[-1]}'
+        if mosh_cfg.mocap.multi_subject:
+            mocap_key += f'_{mosh_cfg.mocap.session_name}'
 
         if mocap_key in exclude_keys: continue
         if osp.exists(mosh_cfg.dirs.stageii_fname): continue  # mosh is complete

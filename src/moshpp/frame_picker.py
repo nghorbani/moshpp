@@ -93,7 +93,7 @@ def load_marker_sessions_random(mocap_fnames: List[str], mocap_unit: str, mocap_
     fname_frame_to_markers = {}
     for fname in mocap_fnames:
         mocap = MocapSession(mocap_fname=fname, mocap_unit=mocap_unit, mocap_rotate=mocap_rotate,
-                             only_subject=only_subjects,
+                             only_subjects=only_subjects,
                              only_markers=only_markers, exclude_markers=exclude_markers, labels_map=labels_map)
         # Creating a dict of filename_frame# to observed markers so that we can refer back to this dict
         # if we need to find which file & frame number each observed marker-frame came from
@@ -140,7 +140,7 @@ def load_marker_sessions_random(mocap_fnames: List[str], mocap_unit: str, mocap_
                 f'Not enough frames were found that have at least %{least_avail_markers * 100.:.1f} of the markers.\n')
 
         return load_marker_sessions_random(mocap_fnames, mocap_unit=mocap_unit, mocap_rotate=mocap_rotate, seed=seed,
-                                           num_frames=num_frames, only_subject=only_subjects,
+                                           num_frames=num_frames, only_subjects=only_subjects,
                                            least_avail_markers=least_avail_markers, only_markers=only_markers,
                                            labels_map=labels_map)
     return reordered_frames, reordered_fnames
