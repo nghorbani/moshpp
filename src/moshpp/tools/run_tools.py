@@ -55,6 +55,7 @@ def universal_mosh_jobs_filter(total_jobs, only_stagei=False, determine_shape_fo
             mocap_key += f'_{mocap_fname_split[-1]}'
         if mosh_cfg.mocap.multi_subject:
             mocap_key += f'_{mosh_cfg.mocap.session_name}'
+            mocap_key += f'_{mosh_cfg.mocap.subject_name}'
 
         if mocap_key in exclude_keys: continue
         if osp.exists(mosh_cfg.dirs.stageii_fname): continue  # mosh is complete
@@ -101,7 +102,7 @@ def resolve_mosh_subject_gender(mocap_fname, fall_back_gender='error', subject_n
     if osp.exists(gender_fname):
         data = json.load(open(gender_fname))
 
-    if multi_subject:
+    if multi_subject or subject_name:  # is the subject name is given or mocap is multisubject
         subject = data.get(subject_name, {})
         gender = subject.get('gender', None)
 
@@ -131,6 +132,10 @@ def setup_mosh_omegaconf_resolvers():
     """
     if not OmegaConf.has_resolver('parent_key'):
         OmegaConf.register_new_resolver("parent_key", lambda _parent_: _parent_._key())
+
+    if not OmegaConf.has_resolver('isequal'):
+        OmegaConf.register_new_resolver('isequal',
+                                        lambda a, b: a == b)
 
     if not OmegaConf.has_resolver('ifelse'):
         OmegaConf.register_new_resolver('ifelse',
