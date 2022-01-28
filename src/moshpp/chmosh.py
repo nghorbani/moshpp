@@ -121,12 +121,24 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         logger.info('Setting moshpp.optimize_face to False')
         cfg.moshpp.optimize_face = False
 
-    logger.info(f'using marker_layout_fname: {cfg.dirs.marker_layout_fname}')
-    marker_meta = marker_layout_load(cfg.dirs.marker_layout_fname, include_nan=True,
+    logger.info(f'using marker_layout_fname: {cfg.dirs.marker_layout.fname}')
+    marker_meta = marker_layout_load(cfg.dirs.marker_layout.fname, include_nan=True,
                                      exclude_markers=cfg.mocap.exclude_markers,
                                      exclude_marker_types=cfg.mocap.exclude_marker_types,
                                      only_markers=cfg.mocap.only_markers, labels_map=general_labels_map)
 
+    avail_labels = list(set([k for l in stagei_frames for k in list(l.keys())]))
+    for body_part, cfg_key in {'finger': 'optimize_fingers', 'face': 'optimize_face'}.items():
+        if not cfg.moshpp[f'{cfg_key}']: continue
+        if not np.any([body_part in m for m in marker_meta['marker_type_mask'].keys()]):
+            cfg.moshpp[f'{cfg_key}'] = False
+            logger.warning(
+                f'{cfg_key} was activated but no {body_part} marker type detected in the marker layout: {cfg_key} = {cfg.moshpp[f"{cfg_key}"]}.')
+        elif not np.any(
+                [(body_part in ltype) and l in avail_labels for l, ltype in marker_meta['marker_type'].items()]):
+            cfg.moshpp[f'{cfg_key}'] = False
+            logger.warning(
+                f'{cfg_key} was activated but no {body_part} marker type detected in the mocaps: {cfg_key} = {cfg.moshpp[f"{cfg_key}"]}.')
 
     # 2. Loading SMPL models.
     # Canonical model is for canonical(a.k.a can space). the beta params of the can_model are ultimately used
@@ -439,10 +451,23 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
                          # only_markers is disabled so that all point can appear in renders.
                          # This wont have an effect on mosh since only stage one labels will be used anyways
                          # only_markers=latent_labels,
-                         only_subjects=[cfg.mocap.subject_name]
+                         only_subjects=[cfg.mocap.subject_name] if cfg.mocap.multi_subject else None
                          )
 
     logger.debug('Loaded mocap markers for mosh stageii')
+
+    avail_labels = latent_labels
+    for body_part, cfg_key in {'finger': 'optimize_fingers', 'face': 'optimize_face'}.items():
+        if not cfg.moshpp[f'{cfg_key}']: continue
+        if not np.any([body_part in m for m in marker_meta['marker_type_mask'].keys()]):
+            cfg.moshpp[f'{cfg_key}'] = False
+            logger.warning(
+                f'{cfg_key} was activated but no {body_part} marker type detected in the marker layout: {cfg_key} = {cfg.moshpp[f"{cfg_key}"]}.')
+        elif not np.any(
+                [(body_part in ltype) and l in avail_labels for l, ltype in marker_meta['marker_type'].items()]):
+            cfg.moshpp[f'{cfg_key}'] = False
+            logger.warning(
+                f'{cfg_key} was activated but no {body_part} marker type detected in the mocaps: {cfg_key} = {cfg.moshpp[f"{cfg_key}"]}.')
 
     can_model, opt_models = load_moshpp_models(surface_model_fname=cfg.surface_model.fname,
                                                surface_model_type=cfg.surface_model.type,
