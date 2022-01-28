@@ -98,9 +98,9 @@ class MoSh:
         assert osp.exists(self.cfg.surface_model.fname), \
             FileNotFoundError(f'surface_model_fname not found: {self.cfg.surface_model.fname}')
 
-        logger.debug(f'surface_model_type: {self.cfg.surface_model.type}')
-        logger.debug(f'gender: {self.cfg.surface_model.gender}')
-        logger.debug(f'surface_model_fname: {self.cfg.surface_model.fname}')
+        logger.debug(f'surface_model: type: {self.cfg.surface_model.type}; '
+                     f'gender: {self.cfg.surface_model.gender}; '
+                     f'fname:{self.cfg.surface_model.fname}')
 
         logger.debug(f'optimize_fingers: {self.cfg.moshpp.optimize_fingers}, '
                      f'optimize_face: {self.cfg.moshpp.optimize_face}, '
@@ -115,19 +115,20 @@ class MoSh:
             logger.debug(
                 f'optimizing for facial expressions. num_expressions = {self.cfg.surface_model.num_expressions:d}')
 
-        if self.cfg.dirs.marker_layout_fname is None:
-            self.cfg.dirs.marker_layout_fname = osp.join(osp.dirname(osp.dirname(self.cfg.mocap.fname)),
+        if self.cfg.dirs.marker_layout.fname is None:
+            self.cfg.dirs.marker_layout.fname = osp.join(osp.dirname(osp.dirname(self.cfg.mocap.fname)),
                                                          f'{self.cfg.surface_model.type}_{self.cfg.mocap.ds_name}.json')
         self.stagei_data = None
         self.stageii_data = None
-
+        # OmegaConf.create(OmegaConf.to_yaml(self.cfg, resolve=True))
         # todo: find a better way to bake these values. maybe sing the omegaconf cache?
+        # i am using OmegaConf.resolve(self.cfg)
         # enabling cache on these fields would do the job however it would disable reevaluation based on chenged subject id.
         # when the field subject id changes we want the gender and subject name to be re-evaluated!
         # we bake the gender into the config so that it is not dependent on the settings.json file
-        self.cfg.surface_model.gender = f"{self.cfg.surface_model.gender}"
-        self.cfg.mocap.subject_name = f"{self.cfg.mocap.subject_name}"
-        self.cfg.mocap.subject_names = self.cfg.mocap.subject_names
+        # self.cfg.surface_model.gender = f"{self.cfg.surface_model.gender}"
+        # self.cfg.mocap.subject_name = f"{self.cfg.mocap.subject_name}"
+        # self.cfg.mocap.subject_names = self.cfg.mocap.subject_names
 
     def prepare_stagei_frames(self, stagei_mocap_fnames: List[str] = None):
 
@@ -162,7 +163,7 @@ class MoSh:
                                                                                     least_avail_markers=frame_picker_cfg.least_avail_markers,
                                                                                     only_markers=self.cfg.mocap.only_markers,
                                                                                     only_subjects=[
-                                                                                        self.cfg.mocap.subject_name],
+                                                                                        self.cfg.mocap.subject_name] if self.cfg.mocap.multi_subject else None,
                                                                                     exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                     labels_map=general_labels_map)
         elif frame_picker_cfg.type == 'random_strict':
@@ -174,7 +175,7 @@ class MoSh:
                                                                                            least_avail_markers=frame_picker_cfg.least_avail_markers,
                                                                                            only_markers=self.cfg.mocap.only_markers,
                                                                                            only_subjects=[
-                                                                                               self.cfg.mocap.subject_name],
+                                                                                               self.cfg.mocap.subject_name] if self.cfg.mocap.multi_subject else None,
                                                                                            exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                            labels_map=general_labels_map)
 
@@ -184,7 +185,7 @@ class MoSh:
                                                                                     mocap_rotate=self.cfg.mocap.rotate,
                                                                                     only_markers=self.cfg.mocap.only_markers,
                                                                                     only_subjects=[
-                                                                                        self.cfg.mocap.subject_name],
+                                                                                        self.cfg.mocap.subject_name] if self.cfg.mocap.multi_subject else None,
                                                                                     exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                     labels_map=general_labels_map)
 
@@ -216,16 +217,17 @@ class MoSh:
 
             logger.info(f'loading mosh stagei results from {self.stagei_fname}')
         else:
-            stagei_frames, stagei_fnames = self.prepare_stagei_frames(self.cfg.moshpp.stagei_frame_picker.stagei_mocap_fnames)
+            stagei_frames, stagei_fnames = self.prepare_stagei_frames(
+                self.cfg.moshpp.stagei_frame_picker.stagei_mocap_fnames)
 
-            if not osp.exists(self.cfg.dirs.marker_layout_fname):
-                logger.debug(f'Marker layout not available. It will be produced: {self.cfg.dirs.marker_layout_fname}')
+            if not osp.exists(self.cfg.dirs.marker_layout.fname):
+                logger.debug(f'Marker layout not available. It will be produced: {self.cfg.dirs.marker_layout.fname}')
                 marker_labels_to_marker_layout(chosen_markers=flatten_list([list(d.keys()) for d in stagei_frames]),
-                                               marker_layout_fname=self.cfg.dirs.marker_layout_fname,
+                                               marker_layout_fname=self.cfg.dirs.marker_layout.fname,
                                                surface_model_type=self.cfg.surface_model.type,
                                                labels_map=general_labels_map,
                                                wrist_markers_on_stick=self.cfg.moshpp.wrist_markers_on_stick,
-                                               separate_types = self.cfg.moshpp.separate_types,
+                                               separate_types=self.cfg.moshpp.separate_types,
                                                )
                 # todo: check how many chosen markers could not be assigned to a body vertex?
 
@@ -239,7 +241,8 @@ class MoSh:
 
             stagei_data['stagei_debug_details']['stagei_fnames'] = stagei_fnames
             stagei_data['stagei_debug_details']['stagei_frames'] = stagei_frames
-            stagei_data['stagei_debug_details']['cfg'] = self.cfg
+            stagei_data['stagei_debug_details']['cfg'] = OmegaConf.to_container(self.cfg, resolve=True,
+                                                                                enum_to_str=True)
 
             stagei_data['stagei_debug_details']['stagei_elapsed_time'] = stagei_elapsed_time
 
@@ -278,7 +281,8 @@ class MoSh:
             stageii_data.update(self.stagei_data)
 
             stageii_data['stageii_debug_details']['stageii_elapsed_time'] = stageii_elapsed_time
-            stageii_data['stageii_debug_details']['cfg'] = self.cfg
+            stageii_data['stageii_debug_details']['cfg'] = OmegaConf.to_container(self.cfg, resolve=True,
+                                                                                  enum_to_str=True)
 
             pickle.dump(stageii_data, open(makepath(self.stageii_fname, isfile=True), 'wb'))
 

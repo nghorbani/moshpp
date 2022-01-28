@@ -1,11 +1,13 @@
 mocap:
   fname: ???
   ds_name: ${resolve_mocap_ds_name:${mocap.fname}}
-  subject_id: 0 # we use id instead of direct names to avoid knowing the subject name beforehand
+  # we use id instead of direct names to avoid knowing the subject name beforehand
+  # by default -1 to ignore th subject label
+  subject_id: -1 # ignore subject if
   subject_names: ${resolve_mocap_subjects:${mocap.fname}}
   # only one subject can be processed at a time
-  subject_name: ${resolve_subject_name:${mocap.subject_names}, ${mocap.subject_id}}
-  multi_subject: ${resolve_multi_subject:${mocap.subject_names}}
+  subject_name: ${resolve_subject_name:${mocap.subject_names},${mocap.subject_id}}
+  multi_subject: ${resolve_multi_subject:${mocap.subject_names},${mocap.subject_id}}
   session_name: ${resolve_mocap_session:${mocap.fname}}
   basename: ${resolve_mocap_basename:${mocap.fname}}
   unit: mm # default unit for c3d is mm
@@ -38,8 +40,8 @@ moshpp:
 
   perseq_mosh_stagei: false
 
-  optimize_fingers: false
-  optimize_face: false
+  optimize_fingers: false #${ifelse:dirs.marker_layout.has_finger,true,false}
+  optimize_face: false #${ifelse:dirs.marker_layout.has_face,true,false}
   optimize_toes: false
   optimize_betas: true
   optimize_dynamics: false
@@ -65,9 +67,15 @@ dirs:
   support_base_dir: ???
   work_base_dir: ???
 
-  markerlyout_basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.type}, ${mocap.ds_name}_${surface_model.type}}
+  marker_layout:
+    basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.type}, ${mocap.ds_name}_${surface_model.type}}
+    fname: ${dirs.work_base_dir}/${ifelse:${moshpp.perseq_mosh_stagei},${dirs.session_subject_subfolders},${mocap.ds_name}}/${dirs.marker_layout.basename}.json
+  #    has_finger: ${has_finger:${dirs.marker_layout.fname}, ${mocap.exclude_markers}, ${mocap.exclude_marker_types},${mocap.only_markers}}
+  #    has_face: ${has_finger:${dirs.marker_layout.fname}, ${mocap.exclude_markers}, ${mocap.exclude_marker_types},${mocap.only_markers}}
 
-  marker_layout_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${ifelse:${moshpp.perseq_mosh_stagei},${dirs.session_subject_subfolders},${mocap.ds_name}}/${dirs.markerlyout_basename}.json
+  markerlyout_basename: ${oc.deprecated:dirs.marker_layout.basename}
+
+  marker_layout_fname: ${oc.deprecated:dirs.marker_layout.fname}
 
   session_subject_subfolders: ${ifelse:${mocap.multi_subject}, ${mocap.session_name}/${mocap.subject_name}, ${mocap.session_name}}
 

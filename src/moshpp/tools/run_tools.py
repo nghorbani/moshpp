@@ -53,7 +53,7 @@ def universal_mosh_jobs_filter(total_jobs, only_stagei=False, determine_shape_fo
         mosh_cfg = MoSh.prepare_cfg(**copy.deepcopy(cur_job))
         if mosh_cfg.moshpp.perseq_mosh_stagei:
             mocap_key += f'_{mocap_fname_split[-1]}'
-        if mosh_cfg.mocap.multi_subject:
+        if mosh_cfg.mocap.subject_id >= 0 and mosh_cfg.mocap.multi_subject:
             mocap_key += f'_{mosh_cfg.mocap.session_name}'
             mocap_key += f'_{mosh_cfg.mocap.subject_name}'
 
@@ -102,7 +102,8 @@ def resolve_mosh_subject_gender(mocap_fname, fall_back_gender='error', subject_n
     if osp.exists(gender_fname):
         data = json.load(open(gender_fname))
 
-    if multi_subject or subject_name:  # is the subject name is given or mocap is multisubject
+    if multi_subject or (
+            subject_name != 'null' and subject_name is not None):  # is the subject name is given or mocap is multisubject
         subject = data.get(subject_name, {})
         gender = subject.get('gender', None)
 
@@ -137,13 +138,17 @@ def setup_mosh_omegaconf_resolvers():
         OmegaConf.register_new_resolver('isequal',
                                         lambda a, b: a == b)
 
+    if not OmegaConf.has_resolver('isin'):
+        OmegaConf.register_new_resolver('isin',
+                                        lambda a, b: a in b)
     if not OmegaConf.has_resolver('ifelse'):
         OmegaConf.register_new_resolver('ifelse',
                                         lambda condition, a, b: a if condition else b)
 
     if not OmegaConf.has_resolver('resolve_subject_name'):
         OmegaConf.register_new_resolver('resolve_subject_name',
-                                        lambda subject_names, subject_id: subject_names[subject_id],
+                                        lambda subject_names, subject_id: subject_names[
+                                            subject_id] if subject_id >= 0 else None,
                                         )  # use_cache=True) # should not use cache, so revaluation based on changed subject id works.
 
     if not OmegaConf.has_resolver('resolve_mocap_subjects'):
@@ -153,7 +158,7 @@ def setup_mosh_omegaconf_resolvers():
 
     if not OmegaConf.has_resolver('resolve_multi_subject'):
         OmegaConf.register_new_resolver('resolve_multi_subject',
-                                        lambda subject_names: len(subject_names) > 1,
+                                        lambda subject_names, subject_id: len(subject_names) > 1 and subject_id >= 0,
                                         use_cache=True)
 
     if not OmegaConf.has_resolver('resolve_mocap_session'):
@@ -175,4 +180,4 @@ def setup_mosh_omegaconf_resolvers():
                                                multi_subject=False:
                                         resolve_mosh_subject_gender(mocap_fname, fall_back_gender, subject_name,
                                                                     multi_subject),
-                                        )  #use_cache=True) # should not use cache, so revaluation based on changed subject id works.
+                                        )  # use_cache=True) # should not use cache, so revaluation based on changed subject id works.
