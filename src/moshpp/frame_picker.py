@@ -179,6 +179,7 @@ def load_marker_sessions_random_strict(mocap_fnames: List[str], mocap_unit: str,
                              only_subjects=only_subjects,
                              exclude_markers=exclude_markers,
                              labels_map=labels_map)
+        if not mocap.read_status: continue
         marker_availability_norm = MocapSession.marker_availability_mask(mocap.markers)
         marker_availability_norm = marker_availability_norm.sum(-1) / marker_availability_norm.shape[1]
 

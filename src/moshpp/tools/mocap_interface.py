@@ -43,6 +43,7 @@ import numpy as np
 from body_visualizer.mesh.psbody_mesh_sphere import points_to_spheres
 from body_visualizer.tools.vis_tools import colors
 from human_body_prior.tools.rotation_tools import rotate_points_xyz
+from loguru import logger
 from psbody.mesh.meshviewer import MeshViewer
 from psbody.mesh.sphere import Sphere
 
@@ -185,7 +186,7 @@ class MocapSession(object):
 
         scale = {'mm': 1000., 'cm': 100., 'm': 1.}[mocap_unit]
         self.mocap_fname = mocap_fname
-
+        self.read_status = False
         if only_subjects: assert isinstance(only_subjects, list), ValueError(
             f'attribute only_subjects should be a list of strings as subject names: {only_subjects}')
 
@@ -228,8 +229,10 @@ class MocapSession(object):
             markers = rotate_points_xyz(markers, mocap_rotate).reshape(markers.shape)
 
         if only_subjects:
-            assert np.all([s in subject_names for s in only_subjects]), ValueError(
-                f'subject names {only_subjects} not available in mocap {subject_names}')
+            if not np.all([s in subject_names for s in only_subjects]):
+                logger.error(
+                    f'subject names {only_subjects} not available in mocap. available subjects: {subject_names}')
+                return None
             selected_subjects_mask = np.zeros(markers.shape[1], dtype=bool)
             for s in only_subjects:
                 selected_subjects_mask = np.logical_or(selected_subjects_mask, subject_mask[s])
@@ -246,9 +249,9 @@ class MocapSession(object):
         self.subject_names = subject_names
         self.multi_subject = len([s for s in subject_names if s != 'null']) > 1
 
-        self.frame_rate = mocap_read.get('frame_rate', 120.)
-        # self.frame_rate = 120. if self.frame_rate is None else 120.
-
+        frame_rate = mocap_read.get('frame_rate', 120.)
+        self.frame_rate = 120. if frame_rate is None else frame_rate
+        self.read_status = True
     def markers_asdict(self) -> List[Dict[str, np.ndarray]]:
         """
         Returns list of dictionaries. Each dictionary contains the labels & markers for consecutive frames of the capture session in the form:
