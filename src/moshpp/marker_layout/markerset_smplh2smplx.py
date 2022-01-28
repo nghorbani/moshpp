@@ -76,3 +76,21 @@ def marker_meta_smplh2smplx(smplh_marker_meta: dict) -> dict:
     # print('created {}'.format(smplx_marker_layout_fname))
     # return {'smplx_marker_meta': smplx_marker_meta, 'smplx_marker_layout_fname': smplx_marker_layout_fname}
     return smplx_marker_meta
+
+
+def marker_meta_smplx2smplh(smplx_marker_meta: dict) -> dict:
+    support_dir = get_support_data_dir(__file__)
+
+    smplx2smplh = np.load(osp.join(support_dir, 'smplx_fit2_smplh.npz'))['smhf2smh']
+
+    assert smplx_marker_meta.get('surface_model_type', 'smplx') == 'smplx', ValueError(
+        'unexpected model_type of the given marker layout: {}'.format(smplx_marker_meta['model_type']))
+
+    smplh_marker_meta = smplx_marker_meta.copy()
+
+    for l, vid in smplx_marker_meta['marker_vids'].items():
+        smplh_marker_meta['marker_vids'][l] = int(smplx2smplh[vid])
+
+    smplh_marker_meta['surface_model_type'] = 'smplh'
+
+    return smplh_marker_meta
