@@ -49,7 +49,8 @@ from human_body_prior.tools.omni_tools import flatten_list
 from human_body_prior.tools.omni_tools import get_support_data_dir
 from human_body_prior.tools.omni_tools import makepath
 from loguru import logger
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
 
 from moshpp import frame_picker
 from moshpp.marker_layout.create_marker_layout_for_mocaps import marker_labels_to_marker_layout
@@ -440,16 +441,18 @@ class MoSh:
         """
         setup_mosh_omegaconf_resolvers() # this method could be called on its own
 
-
         if isinstance(stageii_pkl_data_or_fname, dict):
             stageii_pkl_data = stageii_pkl_data_or_fname
         else:
             try:
                 stageii_pkl_data = pickle.load(open(stageii_pkl_data_or_fname, 'rb'))
             except UnicodeDecodeError:
-                return MoSh.load_as_amass_npz_legacy(stageii_pkl_data_or_fname,stageii_npz_fname,stagei_npz_fname,include_markers)
+                return MoSh.load_as_amass_npz_legacy(stageii_pkl_data_or_fname, stageii_npz_fname, stagei_npz_fname,
+                                                     include_markers)
 
         cfg = stageii_pkl_data['stageii_debug_details']['cfg']
+        if not isinstance(cfg, DictConfig):
+            cfg = OmegaConf.create(cfg)
 
         # if not mo['ps']['optimize_dynamics']: print 'does not have dynamics: %s'%mosh_path
         stageii_npz_data = {

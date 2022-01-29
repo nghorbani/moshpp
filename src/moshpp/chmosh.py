@@ -154,7 +154,8 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                                dof_per_hand=cfg.surface_model.dof_per_hand,
                                                v_template_fname=v_template_fname)
 
-    assert marker_meta['surface_model_type'] == can_model.model_type == cfg.surface_model.type
+    assert marker_meta['surface_model_type'] == can_model.model_type == cfg.surface_model.type, ValueError(
+        f"{marker_meta['surface_model_type']} == {can_model.model_type} == {cfg.surface_model.type}")
 
     optimize_betas = cfg.moshpp.optimize_betas and hasattr(can_model, 'betas')
 
@@ -290,11 +291,14 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
             pose_face_ids = all_pose_ids[66:69]
             # only jaw, the 69:75 represent eye balls and it might be a bit difficult to capture gaze from mocap,
             exp_start_id = cfg.surface_model.betas_expr_start_id
-            v_face_exp = [model.betas[exp_start_id:(exp_start_id+cfg.surface_model.num_expressions)] for model in opt_models]
+            v_face_exp = [model.betas[exp_start_id:(exp_start_id + cfg.surface_model.num_expressions)] for model in
+                          opt_models]
         if cfg.moshpp.optimize_fingers:
             pose_finger_ids = all_pose_ids[75:]
     elif cfg.surface_model.type == 'mano':
         pose_finger_ids = all_pose_ids[3:]
+    elif cfg.surface_model.type == 'animal_horse':
+        pose_body_ids = all_pose_ids[3:84]  # disable_tail_mouth_ear
 
     detailed_step = False
 
@@ -339,6 +343,10 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         if len(pose_body_ids):
             opt_objs['poseB'] = ch.concatenate(
                 [model.priors['pose'](model.pose[pose_body_ids]) for model in opt_models]) * wt_poseB
+
+            if cfg.surface_model.type == 'animal_horse':
+                opt_objs['poseB_jangles'] = ch.concatenate(
+                    [model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in opt_models]) * wt_poseB * 2.
 
         init_loss = (markers_latent - init_markers_latent)
         # opt_objs['init'] = wt_init * init_loss
@@ -550,6 +558,8 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
             pose_finger_ids = all_pose_ids[75:]
     elif cfg.surface_model.type == 'mano':
         pose_finger_ids = all_pose_ids[3:]
+    elif cfg.surface_model.type == 'animal_horse':
+        pose_body_ids = all_pose_ids[3:84]  #disable_tail_mouth_ear
 
     first_active_frame = True
     observed_markers_dict = mocap.markers_asdict()
@@ -585,6 +595,9 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
         opt_objs = {'data': (markers_sim - markers_obs) * wt_data}
         if len(pose_body_ids):
             opt_objs['poseB'] = opt_model.priors['pose'](opt_model.pose[pose_body_ids]) * wt_pose
+            if cfg.surface_model.type == 'animal_horse':
+                opt_objs['poseB_jangles'] = ch.concatenate(
+                    [model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in opt_models]) * wt_pose * 2.
 
         # if len(pose_body_ids):# we dont have body for MANO
         #     opt_objs['poseB'] = ch.concatenate(opt_model.priors['pose'](opt_model.pose[pose_body_ids])) * wt_pose
@@ -605,6 +618,10 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
             for wt_pose_first in [10. * wt_pose, 5. * wt_pose, wt_pose]:
                 if len(pose_body_ids):
                     opt_objs['poseB'] = opt_model.priors['pose'](opt_model.pose[pose_body_ids]) * wt_pose_first
+                if cfg.surface_model.type == 'animal_horse':
+                    opt_objs['poseB_jangles'] = ch.concatenate(
+                        [model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in
+                         opt_models]) * wt_pose_first * 2.
 
                 pose_ids = pose_root_ids + pose_body_ids
                 if len(pose_body_ids) and not cfg.moshpp.optimize_toes:
