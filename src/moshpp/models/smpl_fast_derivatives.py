@@ -60,7 +60,8 @@ def load_surface_model(surface_model_fname,
     dd = pickle.load(open(surface_model_fname, 'rb'), encoding='latin-1')
 
     njoint_parms = dd['posedirs'].shape[2] // 3
-    model_type = {69: 'smpl', 153: 'smplh', 162: 'smplx', 45: 'mano', 105: 'animal_horse'}[njoint_parms]
+    model_type = {69: 'smpl', 153: 'smplh', 162: 'smplx', 45: 'mano', 105: 'animal_horse', 102: 'animal_dog'}[
+        njoint_parms]
 
     # if pose_hand_prior_fname is not None:
     #     assert model_type in ['mano', 'smplx', 'smplh']
