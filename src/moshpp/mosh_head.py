@@ -532,7 +532,7 @@ class MoSh:
         app_support_dir = get_support_data_dir(__file__)
         base_cfg = OmegaConf.load(osp.join(app_support_dir, 'conf/moshpp_conf.yaml'))
 
-        override_cfg_dotlist = [f'{k}={v}' for k, v in kwargs.items()]
+        override_cfg_dotlist = [f'{k}={v}' if v != None else f'{k}=null' for k, v in kwargs.items()]
         override_cfg = OmegaConf.from_dotlist(override_cfg_dotlist)
 
         dict_cfg = OmegaConf.create(dict_cfg)
