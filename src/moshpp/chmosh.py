@@ -92,6 +92,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     :return:
     """
     if betas_fname is not None:
+        logger.debug(f'loading pre-computed betas: {betas_fname}')
         assert betas_fname.endswith('.npz')
         betas = np.load(betas_fname)['betas']
     else:
