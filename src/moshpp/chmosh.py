@@ -251,15 +251,15 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
     head_mrk_corr = None
     if cfg.moshpp.head_marker_corr_fname is not None:  # and 'head' in can_meta['mrk_ids']:
-        logger.debug('head_marker_corr_fname is provided and is being loaded.')
+        logger.debug(f'head_marker_corr_fname is provided and is being loaded: {cfg.moshpp.head_marker_corr_fname}')
         head_meta = np.load(cfg.moshpp.head_marker_corr_fname)
         head_marker_availability = {m: m in marker_meta['marker_vids'] for m in head_meta['mrk_labels']}
         if np.all(list(head_marker_availability.values())):
             head_mrk_ids = [latent_labels.index(m) for m in head_meta['mrk_labels']]
 
             head_mrk_corr = ch.asarray(head_meta['corr'])
-            logger.debug(
-                f'Taking into account the correlation of the head markers from head_marker_corr_fname = {cfg.moshpp.head_marker_corr_fname}')
+            logger.info(
+                f'Successfully into account the correlation of the head markers')
         else:
             logger.debug('Not all of the head markers are available to take cov into account: {}'.format(' -- '.join(
                 [f'({k}, {v})' for k, v in head_marker_availability.items()]
