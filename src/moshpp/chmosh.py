@@ -92,6 +92,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     :return:
     """
     if betas_fname is not None:
+        logger.debug(f'loading pre-computed betas: {betas_fname}')
         assert betas_fname.endswith('.npz')
         betas = np.load(betas_fname)['betas']
     else:
@@ -154,7 +155,9 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                                dof_per_hand=cfg.surface_model.dof_per_hand,
                                                v_template_fname=v_template_fname)
 
-    assert marker_meta['surface_model_type'] == can_model.model_type == cfg.surface_model.type
+    assert marker_meta['surface_model_type'] == can_model.model_type == cfg.surface_model.type, ValueError(
+        f"marker layout surface_model_type doesnt match that of curent mosh session surface_model.type: "
+        f"{marker_meta['surface_model_type']} == {can_model.model_type} == {cfg.surface_model.type}")
 
     optimize_betas = cfg.moshpp.optimize_betas and hasattr(can_model, 'betas')
 
@@ -248,15 +251,15 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
     head_mrk_corr = None
     if cfg.moshpp.head_marker_corr_fname is not None:  # and 'head' in can_meta['mrk_ids']:
-        logger.debug('head_marker_corr_fname is provided and is being loaded.')
+        logger.debug(f'head_marker_corr_fname is provided and is being loaded: {cfg.moshpp.head_marker_corr_fname}')
         head_meta = np.load(cfg.moshpp.head_marker_corr_fname)
         head_marker_availability = {m: m in marker_meta['marker_vids'] for m in head_meta['mrk_labels']}
         if np.all(list(head_marker_availability.values())):
             head_mrk_ids = [latent_labels.index(m) for m in head_meta['mrk_labels']]
 
             head_mrk_corr = ch.asarray(head_meta['corr'])
-            logger.debug(
-                f'Taking into account the correlation of the head markers from head_marker_corr_fname = {cfg.moshpp.head_marker_corr_fname}')
+            logger.info(
+                f'Successfully into account the correlation of the head markers')
         else:
             logger.debug('Not all of the head markers are available to take cov into account: {}'.format(' -- '.join(
                 [f'({k}, {v})' for k, v in head_marker_availability.items()]
@@ -290,11 +293,20 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
             pose_face_ids = all_pose_ids[66:69]
             # only jaw, the 69:75 represent eye balls and it might be a bit difficult to capture gaze from mocap,
             exp_start_id = cfg.surface_model.betas_expr_start_id
-            v_face_exp = [model.betas[exp_start_id:(exp_start_id+cfg.surface_model.num_expressions)] for model in opt_models]
+            v_face_exp = [model.betas[exp_start_id:(exp_start_id + cfg.surface_model.num_expressions)] for model in
+                          opt_models]
         if cfg.moshpp.optimize_fingers:
             pose_finger_ids = all_pose_ids[75:]
     elif cfg.surface_model.type == 'mano':
         pose_finger_ids = all_pose_ids[3:]
+    elif cfg.surface_model.type == 'animal_horse':
+        pose_body_ids = all_pose_ids[3:84]  # disable_tail_mouth_ear
+    elif cfg.surface_model.type == 'animal_dog':
+        joint_ids = [1, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                     30, 31, 32, 33, 34]
+        joint_ids = np.arange(0, 105).reshape([-1, 3])[joint_ids].reshape(-1)
+
+        pose_body_ids = [all_pose_ids[i] for i in joint_ids]  # disable_tail_mouth_ear
 
     detailed_step = False
 
@@ -337,8 +349,13 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         opt_objs['data'] = data_obj * wt_data
 
         if len(pose_body_ids):
-            opt_objs['poseB'] = ch.concatenate(
-                [model.priors['pose'](model.pose[pose_body_ids]) for model in opt_models]) * wt_poseB
+            if opt_models[0].priors['pose']:
+                opt_objs['poseB'] = ch.concatenate(
+                    [model.priors['pose'](model.pose[pose_body_ids]) for model in opt_models]) * wt_poseB
+
+            if cfg.surface_model.type == 'animal_horse':
+                opt_objs['poseB_jangles'] = ch.concatenate(
+                    [model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in opt_models]) * wt_poseB * 2.
 
         init_loss = (markers_latent - init_markers_latent)
         # opt_objs['init'] = wt_init * init_loss
@@ -550,6 +567,14 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
             pose_finger_ids = all_pose_ids[75:]
     elif cfg.surface_model.type == 'mano':
         pose_finger_ids = all_pose_ids[3:]
+    elif cfg.surface_model.type == 'animal_horse':
+        pose_body_ids = all_pose_ids[3:84]  # disable_tail_mouth_ear
+    elif cfg.surface_model.type == 'animal_dog':
+        joint_ids = [1, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                     30, 31, 32, 33, 34]
+        joint_ids = np.arange(0, 105).reshape([-1, 3])[joint_ids].reshape(-1)
+
+        pose_body_ids = [all_pose_ids[i] for i in joint_ids]  # disable_tail_mouth_ear
 
     first_active_frame = True
     observed_markers_dict = mocap.markers_asdict()
@@ -585,6 +610,11 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
         opt_objs = {'data': (markers_sim - markers_obs) * wt_data}
         if len(pose_body_ids):
             opt_objs['poseB'] = opt_model.priors['pose'](opt_model.pose[pose_body_ids]) * wt_pose
+            if cfg.surface_model.type == 'animal_horse':
+                opt_objs['poseB_jangles'] = ch.concatenate(
+                    [model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in opt_models]) * wt_pose * 2.
+            # if cfg.surface_model.type == 'animal_dog':
+            #     opt_objs['poseB_jangles'] = ch.concatenate([model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in opt_models]) * wt_poseB * 2.
 
         # if len(pose_body_ids):# we dont have body for MANO
         #     opt_objs['poseB'] = ch.concatenate(opt_model.priors['pose'](opt_model.pose[pose_body_ids])) * wt_pose
@@ -605,6 +635,10 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
             for wt_pose_first in [10. * wt_pose, 5. * wt_pose, wt_pose]:
                 if len(pose_body_ids):
                     opt_objs['poseB'] = opt_model.priors['pose'](opt_model.pose[pose_body_ids]) * wt_pose_first
+                if cfg.surface_model.type == 'animal_horse':
+                    opt_objs['poseB_jangles'] = ch.concatenate(
+                        [model.priors['pose_jangles'](model.pose[pose_body_ids]) for model in
+                         opt_models]) * wt_pose_first * 2.
 
                 pose_ids = pose_root_ids + pose_body_ids
                 if len(pose_body_ids) and not cfg.moshpp.optimize_toes:

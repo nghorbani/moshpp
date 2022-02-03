@@ -202,7 +202,8 @@ def load_marker_sessions_random_strict(mocap_fnames: List[str], mocap_unit: str,
 
     if len(fname_frame_to_markers) < num_frames:
         raise ValueError(
-            f'Not enough frames were found that have at least {least_avail_markers * 100.:.1f}% of the markers.\n')
+            f'Not enough frames were found that have at least {least_avail_markers * 100.:.1f}% of the markers.\n'
+            f'either try moshpp.stagei_frame_picker.type: random or set moshpp.stagei_frame_picker.least_avail_markers to lower number in ange [0.1,1.0].')
 
     ids = np.random.choice(len(fname_frame_to_markers), num_frames, replace=False)
 

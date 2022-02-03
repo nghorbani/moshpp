@@ -36,11 +36,11 @@ import warnings
 
 import chumpy as ch
 import numpy as np
+from loguru import logger
 
 from moshpp.models.smpl_fast_derivatives import SmplModelLBS
 from moshpp.models.smpl_fast_derivatives import load_surface_model
-from moshpp.models.smpl_fast_derivatives import SmplModelLBS
-from loguru import logger
+
 
 def load_dmpl(pkl_path):
     with open(pkl_path) as f:
@@ -101,24 +101,32 @@ def load_moshpp_models(surface_model_fname,
         from moshpp.prior.gmm_prior_ch import create_gmm_body_prior
 
         sm_temp = load_surface_model(surface_model_fname=surface_model_fname,
-                                       pose_hand_prior_fname=pose_hand_prior_fname,
-                                       use_hands_mean=use_hands_mean,
-                                       dof_per_hand=dof_per_hand,
-                                       v_template_fname=v_template_fname)
+                                     pose_hand_prior_fname=pose_hand_prior_fname,
+                                     use_hands_mean=use_hands_mean,
+                                     dof_per_hand=dof_per_hand,
+                                     v_template_fname=v_template_fname)
 
         betas = ch.array(np.zeros(len(sm_temp.betas)))
 
         can_model = SmplModelLBS(trans=ch.array(np.zeros(sm_temp.trans.size)),
-                              pose=ch.array(np.zeros(sm_temp.pose.size)),
-                              betas=betas,
-                              temp_model=sm_temp)
+                                 pose=ch.array(np.zeros(sm_temp.pose.size)),
+                                 betas=betas,
+                                 temp_model=sm_temp)
 
         assert can_model.model_type == surface_model_type
-
-        priors = {
-                  'pose': create_gmm_body_prior(pose_body_prior_fname=pose_body_prior_fname,
-                                                exclude_hands=surface_model_type in ['smplh', 'smplx'])
-                  }
+        priors = {}
+        if surface_model_type == 'animal_horse':
+            from moshpp.prior.horse_body_prior import smal_horse_prior, smal_horse_joint_angle_prior
+            priors['pose'] = smal_horse_prior(pose_body_prior_fname)
+            priors['pose_jangles'] = smal_horse_joint_angle_prior()
+        elif surface_model_type == 'animal_dog':
+            from moshpp.prior.dog_body_prior import MaxMixtureDog
+            # from moshpp.prior.smal_dog_prior import smal_dog_prior, smal_dog_joint_angle_prior
+            priors['pose'] = MaxMixtureDog(prior_pklpath=pose_body_prior_fname).get_gmm_prior()
+            # priors['pose_jangles'] = smal_dog_joint_angle_prior()
+        else:
+            priors['pose'] = create_gmm_body_prior(pose_body_prior_fname=pose_body_prior_fname,
+                                                   exclude_hands=surface_model_type in ['smplh', 'smplx'])
         if not optimize_face:
             priors['betas'] = AliasedBetas(sv=can_model, surface_model_type=surface_model_type)
 

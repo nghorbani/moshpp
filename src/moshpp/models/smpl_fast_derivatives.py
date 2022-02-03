@@ -36,17 +36,18 @@
 SMPL fitting wit fast derivatives
 ---------------------------------
 """
-import os.path  as osp
+import os.path as osp
 import pickle as pickle
 
 import chumpy as ch
 import numpy as np
 import scipy.sparse as sp
+from chumpy.ch import MatVecMult
+from loguru import logger
 from psbody.mesh import Mesh
 from psbody.smpl.fast_derivatives.smplcpp_chumpy import lbs_derivatives_wrt_pose, lbs_derivatives_wrt_shape
 from psbody.smpl.verts import verts_decorated
-from loguru import logger
-from chumpy.ch import MatVecMult
+
 
 def load_surface_model(surface_model_fname,
                        pose_hand_prior_fname=None,
@@ -59,7 +60,8 @@ def load_surface_model(surface_model_fname,
     dd = pickle.load(open(surface_model_fname, 'rb'), encoding='latin-1')
 
     njoint_parms = dd['posedirs'].shape[2] // 3
-    model_type = {69: 'smpl', 153: 'smplh', 162: 'smplx', 45: 'mano', 105: 'animal_horse'}[njoint_parms]
+    model_type = {69: 'smpl', 153: 'smplh', 162: 'smplx', 45: 'mano', 105: 'animal_horse', 102: 'animal_dog'}[
+        njoint_parms]
 
     # if pose_hand_prior_fname is not None:
     #     assert model_type in ['mano', 'smplx', 'smplh']
@@ -118,7 +120,8 @@ def load_surface_model(surface_model_fname,
         dd['pose'] = ch.zeros(pose_body_dof + selected_components.shape[0])
 
     else:
-        dd['pose'] = ch.zeros(njoint_parms + 3)
+        pose_body_dof = njoint_parms + 3
+        dd['pose'] = ch.zeros(pose_body_dof)
 
     Jreg = dd['J_regressor']
     if not sp.issparse(Jreg):
@@ -147,10 +150,11 @@ def load_surface_model(surface_model_fname,
     for k, v in dd.items():
         model.__setattr__(k, v)
 
-    model = SmplModelLBS(pose=ch.zeros(pose_body_dof + selected_components.shape[0]),# pose=dd['pose'],
-                        trans=dd['trans'],
-                        betas=dd['betas'],
-                        temp_model=model)  # Smpl model based on linear blend skinning.
+    model = SmplModelLBS(pose=ch.zeros(
+        pose_body_dof + (selected_components.shape[0] if model_type in ['smplx', 'smplh', 'mano'] else 0)),
+                         trans=dd['trans'],
+                         betas=dd['betas'],
+                         temp_model=model)  # Smpl model based on linear blend skinning.
 
     if v_template_fname is not None:
         model.v_template[:] = v_template
