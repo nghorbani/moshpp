@@ -44,23 +44,26 @@ mvs = None
 mv_canonical = None
 mv2 = None
 
-marker_radius = {'body': 0.009, 'face': 0.004, 'finger': 0.005, 'finger_left': 0.005, 'finger_right': 0.005}
+default_marker_radius = {'body': 0.009, 'face': 0.004, 'finger': 0.005, 'finger_left': 0.005, 'finger_right': 0.005}
 
 
 def visualize_shape_estimate(opt_models, can_model, markers_sim, markers_obs, markers_latent, init_markers_latent,
-                             marker_meta):
+                             marker_meta, marker_radius=None):
     from psbody.mesh.meshviewer import test_for_opengl
     if not test_for_opengl(): return
+    if marker_radius is None:
+        marker_radius = default_marker_radius
 
-    marker_radi = np.ones(len(marker_meta['marker_vids'])) * marker_radius['body']
+
+    marker_radi = np.ones(len(marker_meta['marker_vids'])) * default_marker_radius['body']
     for marker_type, mask in marker_meta['marker_type_mask'].items():
-        marker_radi[mask] = marker_radius.get(marker_type, marker_radius['body'])
+        marker_radi[mask] = marker_radius.get(marker_type, default_marker_radius['body'])
 
     sz = int(np.ceil(np.sqrt(len(opt_models))))
 
-    mvs_raw = MeshViewers(window_width=640, window_height=480, shape=(sz, sz))
+    mvs_raw = MeshViewers(window_width=640, window_height=480, shape=(sz, sz), keepalive=True)
     mvs = reduce(lambda x, y: x + y, mvs_raw)
-    mv_canonical = MeshViewer(window_width=640, window_height=480, keepalive=False)
+    mv_canonical = MeshViewer(window_width=640, window_height=480, keepalive=True)
     mv_canonical.set_background_color(np.array([1., 1., 1.]))
     mvs[0].set_background_color(np.array([1., 1., 1.]))
 
@@ -90,14 +93,17 @@ def visualize_shape_estimate(opt_models, can_model, markers_sim, markers_obs, ma
     return lambda x: on_step(x)
 
 
-def visualize_pose_estimate(sv, marker_meta):
+def visualize_pose_estimate(sv, marker_meta, marker_radius):
     from psbody.mesh.meshviewer import test_for_opengl
     if not test_for_opengl(): return
+
+    if marker_radius is None:
+        marker_radius = default_marker_radius
 
     marker_radi = {}
     for marker_type, mask in marker_meta['marker_type_mask'].items():
         for valid, l in zip(mask, list(marker_meta['marker_vids'].keys())):
-            if valid: marker_radi[l] = marker_radius.get(marker_type, marker_radius['body'])
+            if valid: marker_radi[l] = marker_radius.get(marker_type, default_marker_radius['body'])
 
     mv2 = MeshViewer(window_width=640, window_height=480, keepalive=False)
 

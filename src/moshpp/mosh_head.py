@@ -60,6 +60,7 @@ from moshpp.marker_layout.edit_tools import marker_layout_write
 from moshpp.marker_layout.labels_map import general_labels_map
 from moshpp.tools.run_tools import turn_fullpose_into_parts, setup_mosh_omegaconf_resolvers
 
+from moshpp.marker_layout.edit_tools import marker_layout_load
 
 class MoSh:
     """
@@ -254,7 +255,8 @@ class MoSh:
             logger.debug(f'finished mosh stagei in {timedelta(seconds=stagei_elapsed_time)}')
             self.stagei_data = stagei_data
 
-            MoSh.dump_stagei_marker_layout(self.stagei_fname)
+            if self.cfg.dirs.write_optimized_marker_layout:
+                MoSh.dump_stagei_marker_layout(self.stagei_fname)
 
         return self.stagei_fname
 
@@ -543,14 +545,19 @@ class MoSh:
         return OmegaConf.merge(base_cfg, override_cfg, dict_cfg)
 
     @staticmethod
-    def extract_marker_layout_from_mosh(mosh_stagei_pkl_fname: Union[str, dict]) -> dict:
+    def extract_marker_layout_from_mosh(mosh_stagei_pkl_fname: Union[str, dict],
+                                        template_marker_layout_fname: str= None) -> dict:
         if not isinstance(mosh_stagei_pkl_fname, dict):
             mosh_stagei = pickle.load(open(mosh_stagei_pkl_fname, 'rb'))
         else:
             mosh_stagei = mosh_stagei_pkl_fname
 
         opt_marker_vids = mosh_stagei['markers_latent_vids']
-        marker_meta = deepcopy(mosh_stagei['marker_meta'])
+        if template_marker_layout_fname:
+            # open the marker layout again and replace the optimized vids
+            marker_meta = marker_layout_load(template_marker_layout_fname)
+        else:
+            marker_meta = deepcopy(mosh_stagei['marker_meta'])
 
         for l, vid in marker_meta['marker_vids'].items():
             if l in opt_marker_vids:

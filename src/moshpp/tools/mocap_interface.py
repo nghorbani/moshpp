@@ -48,13 +48,12 @@ from psbody.mesh.meshviewer import MeshViewer
 from psbody.mesh.sphere import Sphere
 
 
-def write_mocap_c3d(markers: np.ndarray, labels: list, out_mocap_fname: str, frame_rate: int = 120):
+def write_mocap_c3d(markers: np.ndarray, labels: list, out_mocap_fname: str, frame_rate: int = 120) -> None:
     """
-    Here we are c3d package since ezc3d has a bug by writing nan points which causes non-negative residual values for them
-    non-negative residuals for nan points means they wont be shown as occluded in a standard mocap tool
-    :param markers:
-    :param labels:
-    :param out_mocap_fname:
+
+    :param markers: np.ndarray: num_frames x num_points x 3
+    :param labels: list: num_points
+    :param out_mocap_fname: str:
     :param frame_rate:
     """
     # todo: add the ability to write at any scale. alternatively make it standard to mm
@@ -65,7 +64,7 @@ def write_mocap_c3d(markers: np.ndarray, labels: list, out_mocap_fname: str, fra
     writer['parameters']['POINT']['RATE']['value'] = [frame_rate]
     writer['parameters']['POINT']['LABELS']['value'] = labels
 
-    markers = markers * 1000.
+    markers = markers * 1000. # meters to milimeters. a c3d file should be in mm
 
     pts = markers
     pts_extra = np.zeros([markers.shape[0], markers.shape[1], 1])
@@ -371,8 +370,8 @@ class MocapSession(object):
 
 if __name__ == '__main__':
     # mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/61/61_01.c3d'
-    # mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/60/60_01.c3d'
-    mocap_fname = '/ps/project/common/moshpp/animal_rat/bla.c3d'
+    mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/60/60_01.c3d'
+    # mocap_fname = '/ps/project/common/moshpp/animal_rat/correct_rat.c3d'
     # out_mocap_fname = mocap_fname.replace('.pkl', '.c3d')
     # out_mocap_fname = '/is/cluster/scratch/soma/training_experiments/V48_02_MPI124/OC_05_G_03_real_000_synt_100/evaluations/soma_labeled_mocap_tracklet/ASL_Unlabeled/210805_03586/aa.pkl'
 

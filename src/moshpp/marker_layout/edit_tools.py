@@ -288,7 +288,8 @@ def merge_marker_layouts(marker_layout_fnames: List[Union[str, Path]],
 def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
                           body_parms: dict = {},
                           ceasar_pose: bool = False,
-                          preserve_vertex_order: bool = False):
+                          preserve_vertex_order: bool = False,
+                          surface_model_type=None):
     marker_radius = {'body': 0.009, 'face': 0.004, 'finger': 0.005}
 
     if ceasar_pose:
@@ -297,7 +298,7 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
         pose_body_pt = torch.from_numpy(pose_body.reshape(1, -1)).type(torch.float)
         body_parms = {'pose_body': pose_body_pt}
 
-    bm = BodyModel(surface_model_fname, num_betas=body_parms.get('num_betas', 10))
+    bm = BodyModel(surface_model_fname, num_betas=body_parms.get('num_betas', 10), model_type=surface_model_type)
     body = bm(**body_parms)
 
     dtvn = c2c(Meshes(verts=body.v, faces=body.f.expand(len(body.v), -1, -1)).verts_normals_packed())

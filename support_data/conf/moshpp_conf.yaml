@@ -62,12 +62,20 @@ moshpp:
     stagei_mocap_fnames: ${ifelse:${moshpp.perseq_mosh_stagei}, [${mocap.fname}], null} # sequences for stagei of mosh
 
   verbosity: 1
+  visualization:
+    marker_radius:
+      body: 0.009
+      face: 0.004
+      finger: 0.005
+      finger_left: 0.005
+      finger_rightt: 0.005
 
 dirs:
   support_base_dir: ???
   work_base_dir: ???
   session_subject_subfolders: ${ifelse:${mocap.multi_subject}, ${mocap.session_name}/${mocap.subject_name}, ${mocap.session_name}}
 
+  write_optimized_marker_layout: true
   marker_layout:
     basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.type}, ${mocap.ds_name}_${surface_model.type}}
     fname: ${dirs.work_base_dir}/${mocap.ds_name}/${ifelse:${moshpp.perseq_mosh_stagei},${dirs.session_subject_subfolders}/${dirs.marker_layout.basename}.json,${dirs.marker_layout.basename}.json}

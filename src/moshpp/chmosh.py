@@ -93,7 +93,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
     """
     if betas_fname is not None:
         logger.debug(f'loading pre-computed betas: {betas_fname}')
-        assert betas_fname.endswith('.npz')
+        assert betas_fname.endswith('.npz'), ValueError(f'invalid numpy betas_fname: {betas_fname}')
         betas = np.load(betas_fname)['betas']
     else:
         betas = None
@@ -240,7 +240,8 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                            markers_obs=markers_obs,
                                            markers_latent=markers_latent,
                                            init_markers_latent=init_markers_latent,
-                                           marker_meta=marker_meta)
+                                           marker_meta=marker_meta,
+                                           marker_radius=cfg.moshpp.visualization.marker_radius)
     else:
         on_step = None
 
@@ -514,7 +515,10 @@ def mosh_stageii(mocap_fname: str, cfg: DictConfig, markers_latent: np.array,
                                                                                  :cfg.surface_model.num_dmpls]
         opt_model.dmpl = opt_model.betas[cfg.surface_model.num_betas:total_num_betas]
 
-    on_step = visualize_pose_estimate(opt_model, marker_meta=marker_meta) if cfg.moshpp.verbosity > 1 else None
+    on_step = visualize_pose_estimate(opt_model,
+                                      marker_meta=marker_meta,
+                                      marker_radius=cfg.moshpp.visualization.marker_radius
+                                      ) if cfg.moshpp.verbosity > 1 else None
 
     perframe_data = {
         'markers_sim': [],
