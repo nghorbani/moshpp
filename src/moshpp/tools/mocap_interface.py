@@ -372,8 +372,8 @@ class MocapSession(object):
 if __name__ == '__main__':
     # mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/61/61_01.c3d'
     # mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/60/60_01.c3d'
-    mocap_fname = '/ps/project/vicondata/ViconDataCaptures/OfficialCaptures/SAMP/SAMP_201208_03301_TB/1_AUTOLABELED/armchair001.c3d'
-    out_mocap_fname = mocap_fname.replace('.pkl', '.c3d')
+    mocap_fname = '/ps/project/common/moshpp/animal_rat/bla.c3d'
+    # out_mocap_fname = mocap_fname.replace('.pkl', '.c3d')
     # out_mocap_fname = '/is/cluster/scratch/soma/training_experiments/V48_02_MPI124/OC_05_G_03_real_000_synt_100/evaluations/soma_labeled_mocap_tracklet/ASL_Unlabeled/210805_03586/aa.pkl'
 
     mocap = MocapSession(mocap_fname, mocap_unit='mm', ignore_stared_labels=False)  # , mocap_rotate=[90,0,0])
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     # #             open(out_mocap_fname,'wb'))
     # #
     # # # print(mocap._marker_data['labels_perframe'])
-    mocap.play_mocap_trajectories(radius=0.03, delay=100)
+    mocap.play_mocap_trajectories(radius=0.005, delay=100)
     # write_mocap_c3d(
     #     markers= mocap.markers*1000,#[:100],
     #     labels=mocap.labels,

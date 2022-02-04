@@ -117,15 +117,18 @@ def load_moshpp_models(surface_model_fname,
         priors = {}
         if surface_model_type == 'animal_horse':
             from moshpp.prior.horse_body_prior import smal_horse_prior, smal_horse_joint_angle_prior
-            priors['pose'] = smal_horse_prior(pose_body_prior_fname)
+            if pose_body_prior_fname:
+                priors['pose'] = smal_horse_prior(pose_body_prior_fname)
             priors['pose_jangles'] = smal_horse_joint_angle_prior()
         elif surface_model_type == 'animal_dog':
             from moshpp.prior.dog_body_prior import MaxMixtureDog
             # from moshpp.prior.smal_dog_prior import smal_dog_prior, smal_dog_joint_angle_prior
-            priors['pose'] = MaxMixtureDog(prior_pklpath=pose_body_prior_fname).get_gmm_prior()
+            if pose_body_prior_fname:
+                priors['pose'] = MaxMixtureDog(prior_pklpath=pose_body_prior_fname).get_gmm_prior()
             # priors['pose_jangles'] = smal_dog_joint_angle_prior()
         else:
-            priors['pose'] = create_gmm_body_prior(pose_body_prior_fname=pose_body_prior_fname,
+            if pose_body_prior_fname:
+                priors['pose'] = create_gmm_body_prior(pose_body_prior_fname=pose_body_prior_fname,
                                                    exclude_hands=surface_model_type in ['smplh', 'smplx'])
         if not optimize_face:
             priors['betas'] = AliasedBetas(sv=can_model, surface_model_type=surface_model_type)

@@ -430,6 +430,7 @@ class MoSh:
                           stageii_npz_fname: Union[str, Path] = None,
                           stagei_npz_fname: Union[str, Path] = None,
                           include_markers: bool = False,
+                          include_extra_details: bool=False,
                           ) -> dict:
         """
 
@@ -469,6 +470,8 @@ class MoSh:
             'trans': stageii_pkl_data['trans'],
             'poses': stageii_pkl_data['fullpose'],
         }
+        if include_extra_details:
+            stageii_npz_data['surface_model_fname'] = cfg['surface_model']['fname']
         if 'v_template' in stageii_pkl_data['stagei_debug_details']:
             stageii_npz_data['v_template'] = stageii_pkl_data['stagei_debug_details']['v_template']
 

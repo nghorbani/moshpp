@@ -259,7 +259,7 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
 
             head_mrk_corr = ch.asarray(head_meta['corr'])
             logger.info(
-                f'Successfully into account the correlation of the head markers')
+                f'Successfully took into account the correlation of the head markers')
         else:
             logger.debug('Not all of the head markers are available to take cov into account: {}'.format(' -- '.join(
                 [f'({k}, {v})' for k, v in head_marker_availability.items()]
