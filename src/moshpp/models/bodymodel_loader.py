@@ -104,7 +104,10 @@ def load_moshpp_models(surface_model_fname,
                                      pose_hand_prior_fname=pose_hand_prior_fname,
                                      use_hands_mean=use_hands_mean,
                                      dof_per_hand=dof_per_hand,
-                                     v_template_fname=v_template_fname)
+                                     v_template_fname=v_template_fname,
+                                     surface_model_type=surface_model_type,
+                                     #this is to address the models that have the same number of jonts i.e. dog, rat
+                                     )
 
         betas = ch.array(np.zeros(len(sm_temp.betas)))
 
@@ -113,7 +116,7 @@ def load_moshpp_models(surface_model_fname,
                                  betas=betas,
                                  temp_model=sm_temp)
 
-        assert can_model.model_type == surface_model_type
+        assert can_model.model_type == surface_model_type, ValueError(f'{can_model.model_type} != {surface_model_type}')
         priors = {}
         if surface_model_type == 'animal_horse':
             from moshpp.prior.horse_body_prior import smal_horse_prior, smal_horse_joint_angle_prior

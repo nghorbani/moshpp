@@ -54,14 +54,18 @@ def load_surface_model(surface_model_fname,
                        use_hands_mean=False,
                        dof_per_hand=12,
                        v_template_fname=None,
+                       surface_model_type:str=None,
                        body_parms={}):
     assert surface_model_fname.endswith('.pkl'), ValueError('surface_model_fname could only be a pkl file.')
 
     dd = pickle.load(open(surface_model_fname, 'rb'), encoding='latin-1')
 
     njoint_parms = dd['posedirs'].shape[2] // 3
-    model_type = {69: 'smpl', 153: 'smplh', 162: 'smplx', 45: 'mano', 105: 'animal_horse', 102: 'animal_dog'}[
-        njoint_parms]
+    if surface_model_type :
+        model_type = surface_model_type
+    else:
+        model_type = {69: 'smpl', 153: 'smplh', 162: 'smplx', 45: 'mano', 105: 'animal_horse', 102: 'animal_dog'}[
+            njoint_parms]
 
     # if pose_hand_prior_fname is not None:
     #     assert model_type in ['mano', 'smplx', 'smplh']
