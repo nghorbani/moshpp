@@ -390,7 +390,7 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
     return as_mesh
 
 
-def marker_layout_to_c3d(marker_layout_fname, surface_model_fname, out_c3d_fname=None):
+def marker_layout_to_c3d(marker_layout_fname, surface_model_fname,surface_model_type= None , out_c3d_fname=None):
     """
     This function enables investigating a marker layout in c3d software such as Mokka
     Args:
@@ -405,7 +405,7 @@ def marker_layout_to_c3d(marker_layout_fname, surface_model_fname, out_c3d_fname
         out_c3d_fname = marker_layout_fname.replace('.json', '.c3d')
     assert out_c3d_fname.endswith('.c3d'), ValueError(f'out_c3d_fname should be a valid c3d file {out_c3d_fname}')
 
-    mocap = marker_layout_as_mesh(surface_model_fname)(marker_layout_fname)
+    mocap = marker_layout_as_mesh(surface_model_fname, surface_model_type=surface_model_type)(marker_layout_fname)
     markers = mocap['markers'] + [0, 1.3, 0]
     markers = rotate_points_xyz(markers[None], np.array([90, 0, 0])[None])
     markers = np.repeat(markers, repeats=100, axis=0)

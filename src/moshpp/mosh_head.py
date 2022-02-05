@@ -296,11 +296,14 @@ class MoSh:
         return self.stageii_fname
 
     @staticmethod
-    def dump_stagei_marker_layout(mosh_stagei_pkl_fname, out_marker_layout_fname=None):
+    def dump_stagei_marker_layout(mosh_stagei_pkl_fname,
+                                  out_marker_layout_fname=None,
+                                  template_marker_layout_fname: str= None):
         assert mosh_stagei_pkl_fname.endswith('.pkl'), ValueError(f'mosh_stagei_pkl_fname should be a valid pkl file: {mosh_stagei_pkl_fname}')
         mosh_stagei = pickle.load(open(mosh_stagei_pkl_fname, 'rb'))
 
-        marker_meta = MoSh.extract_marker_layout_from_mosh(mosh_stagei)
+        marker_meta = MoSh.extract_marker_layout_from_mosh(mosh_stagei,
+                                                           template_marker_layout_fname=template_marker_layout_fname)
         if out_marker_layout_fname is None:
             out_marker_layout_fname = mosh_stagei_pkl_fname.replace('.pkl', '.json')
 
@@ -317,9 +320,15 @@ class MoSh:
             num_betas = mosh_stagei['stagei_debug_details']['cfg']['surface_model']['num_betas']
             body_parms['betas'] =  torch.Tensor(mosh_stagei['betas'][:num_betas][None])
             body_parms['num_betas'] =  num_betas
-
-        marker_layout_as_mesh(surface_model_fname, preserve_vertex_order=True,body_parms=body_parms )(out_marker_layout_fname,output_ply_fname)
-        marker_layout_to_c3d(out_marker_layout_fname, surface_model_fname=surface_model_fname, out_c3d_fname=output_c3d_fname)
+        surface_model_type = mosh_stagei['stagei_debug_details']['cfg']['surface_model']['type']
+        marker_layout_as_mesh(surface_model_fname,
+                              preserve_vertex_order=True,
+                              body_parms=body_parms,
+                              surface_model_type= surface_model_type)(out_marker_layout_fname,output_ply_fname)
+        marker_layout_to_c3d(out_marker_layout_fname,
+                             surface_model_fname=surface_model_fname,
+                             out_c3d_fname=output_c3d_fname,
+                             surface_model_type= surface_model_type)
 
         logger.info(f'created {out_marker_layout_fname}')
         logger.info(f'created {output_ply_fname}')
