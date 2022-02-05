@@ -170,6 +170,10 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         #     can_model.body_shape[:cfg.surface_model.num_betas] = prev_shape_est['betas'][:cfg.surface_model.num_betas].copy()
         # else:
         can_model.betas[:cfg.surface_model.num_betas] = betas[:cfg.surface_model.num_betas].copy()
+        if cfg.moshpp.optimize_face:
+            for model in opt_models:
+                model.betas[:cfg.surface_model.num_betas] = betas[:cfg.surface_model.num_betas].copy()
+
         logger.debug(f'Will use previously computed betas and optimize_betas = {optimize_betas}')
 
     # 4. Get initial guess for the can marker and set them up

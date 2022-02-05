@@ -138,6 +138,13 @@ def load_moshpp_models(surface_model_fname,
 
         can_model.priors = priors
 
+        # do not share betas when optimizing betas to go around an issue of chumpy
+        # with it current implementation of SMPL-X body shape betas and facial expressions share the same parameter; i.e. betas
+        # now mosh requires betas to be shared across the canonical model and the 12 frames
+        # now those 12 frames cannot share expressions though!
+        # and that requires double indexing the same array; i.e. once for body shape and once for expressions
+        # that messes up chumpy since it holds a grudge on double indexing the same optimization free variable
+        # solution is to precompute betas and to not lock it at all when face needs to be optimized
         beta_shared_models = [SmplModelLBS(pose=ch.array(np.zeros(can_model.pose.size)),
                                            trans=ch.array(np.zeros(can_model.trans.size)),
                                            betas=can_model.betas if not optimize_face else ch.array(np.zeros(can_model.betas.size)),
