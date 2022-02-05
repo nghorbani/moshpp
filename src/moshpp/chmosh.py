@@ -39,7 +39,6 @@ from typing import List, Dict, Union
 import chumpy as ch
 import numpy as np
 from human_body_prior.tools.omni_tools import flatten_list
-from human_body_prior.tools.omni_tools import makepath
 from loguru import logger
 from omegaconf import DictConfig
 from psbody.mesh import Mesh
@@ -97,10 +96,6 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         betas = np.load(betas_fname)['betas']
     else:
         betas = None
-
-    log_fname = makepath(cfg.dirs.stagei_fname.replace('.pkl', '.log'), isfile=True)
-    log_format = "{module}:{function}:{line} -- {level} -- {message}"
-    stagei_logger_id = logger.add(log_fname, format=log_format, enqueue=True)
 
     # Todo: check for it if given vtempalte the values for betas should be zeros
     num_train_markers = 46  # constant
@@ -456,7 +451,6 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         stagei_debug_details['v_template'] = can_model.v_template.r
 
     stagei_data['stagei_debug_details'] = stagei_debug_details
-    logger.remove(stagei_logger_id)
 
     return stagei_data
 

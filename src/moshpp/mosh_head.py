@@ -55,12 +55,12 @@ from omegaconf import OmegaConf
 from moshpp import frame_picker
 from moshpp.marker_layout.create_marker_layout_for_mocaps import marker_labels_to_marker_layout
 from moshpp.marker_layout.edit_tools import marker_layout_as_mesh
+from moshpp.marker_layout.edit_tools import marker_layout_load
 from moshpp.marker_layout.edit_tools import marker_layout_to_c3d
 from moshpp.marker_layout.edit_tools import marker_layout_write
 from moshpp.marker_layout.labels_map import general_labels_map
 from moshpp.tools.run_tools import turn_fullpose_into_parts, setup_mosh_omegaconf_resolvers
 
-from moshpp.marker_layout.edit_tools import marker_layout_load
 
 class MoSh:
     """
@@ -219,6 +219,10 @@ class MoSh:
 
             logger.info(f'loading mosh stagei results from {self.stagei_fname}')
         else:
+            log_fname = makepath(self.cfg.dirs.stagei_fname.replace('.pkl', '.log'), isfile=True)
+            log_format = "{module}:{function}:{line} -- {level} -- {message}"
+            stagei_logger_id = logger.add(log_fname, format=log_format, enqueue=True)
+
             stagei_frames, stagei_fnames = self.prepare_stagei_frames(
                 self.cfg.moshpp.stagei_frame_picker.stagei_mocap_fnames)
 
@@ -257,6 +261,7 @@ class MoSh:
 
             if self.cfg.dirs.write_optimized_marker_layout:
                 MoSh.dump_stagei_marker_layout(self.stagei_fname)
+            logger.remove(stagei_logger_id)
 
         return self.stagei_fname
 

@@ -153,7 +153,7 @@ opt_weights:
     stagei_wt_init_finger_left: 789.47
     stagei_wt_init_finger_right: 789.47
     stagei_wt_init_head: 220.69
-    stagei_wt_init_face: 775.86 #1100.
+    stagei_wt_init_face: 1100. #775.86
     stagei_wt_poseH: 5.31 # 6.87
     stagei_wt_poseF: 28.97
     stagei_wt_expr: 6.99
