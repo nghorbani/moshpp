@@ -48,12 +48,11 @@ default_marker_radius = {'body': 0.009, 'face': 0.004, 'finger': 0.005, 'finger_
 
 
 def visualize_shape_estimate(opt_models, can_model, markers_sim, markers_obs, markers_latent, init_markers_latent,
-                             marker_meta, marker_radius=None):
+                             marker_meta, marker_radius=None, keep_alive=False):
     from psbody.mesh.meshviewer import test_for_opengl
     if not test_for_opengl(): return
     if marker_radius is None:
         marker_radius = default_marker_radius
-
 
     marker_radi = np.ones(len(marker_meta['marker_vids'])) * default_marker_radius['body']
     for marker_type, mask in marker_meta['marker_type_mask'].items():
@@ -61,9 +60,9 @@ def visualize_shape_estimate(opt_models, can_model, markers_sim, markers_obs, ma
 
     sz = int(np.ceil(np.sqrt(len(opt_models))))
 
-    mvs_raw = MeshViewers(window_width=640, window_height=480, shape=(sz, sz), keepalive=True)
+    mvs_raw = MeshViewers(window_width=640, window_height=480, shape=(sz, sz), keepalive=keep_alive)
     mvs = reduce(lambda x, y: x + y, mvs_raw)
-    mv_canonical = MeshViewer(window_width=640, window_height=480, keepalive=True)
+    mv_canonical = MeshViewer(window_width=640, window_height=480, keepalive=keep_alive)
     mv_canonical.set_background_color(np.array([1., 1., 1.]))
     mvs[0].set_background_color(np.array([1., 1., 1.]))
 

@@ -240,7 +240,8 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
                                            markers_latent=markers_latent,
                                            init_markers_latent=init_markers_latent,
                                            marker_meta=marker_meta,
-                                           marker_radius=cfg.moshpp.visualization.marker_radius)
+                                           marker_radius=cfg.moshpp.visualization.marker_radius,
+                                           keep_alive=cfg.moshpp.visualization.keep_alive)
     else:
         on_step = None
 

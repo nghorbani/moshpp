@@ -58,7 +58,7 @@ def universal_mosh_jobs_filter(total_jobs, only_stagei=False, determine_shape_fo
             mocap_key += f'_{mosh_cfg.mocap.subject_name}'
 
         if mocap_key in exclude_keys: continue
-        if osp.exists(mosh_cfg.dirs.stageii_fname): continue  # mosh is complete
+        if mosh_cfg.dirs.stageii_fname and osp.exists(mosh_cfg.dirs.stageii_fname): continue  # mosh is complete
 
         if not osp.exists(mosh_cfg.dirs.stagei_fname) \
                 and not determine_shape_for_each_seq: exclude_keys.append(mocap_key)
@@ -121,7 +121,6 @@ def resolve_mosh_subject_gender(mocap_fname, fall_back_gender='error', subject_n
 
     return gender
 
-
 def setup_mosh_omegaconf_resolvers():
     """
     ds_name, subject name and mocap basename are automatically extracted from the mocap path.
@@ -147,9 +146,17 @@ def setup_mosh_omegaconf_resolvers():
 
     if not OmegaConf.has_resolver('resolve_subject_name'):
         OmegaConf.register_new_resolver('resolve_subject_name',
-                                        lambda subject_names, subject_id: subject_names[
-                                            subject_id] if subject_id >= 0 else None,
-                                        )  # use_cache=True) # should not use cache, so revaluation based on changed subject id works.
+                                        lambda subject_names,
+                                               subject_id: subject_names[subject_id] if subject_id >= 0 else None,
+                                        )
+        # use_cache=True) # should not use cache, so revaluation based on changed subject id works.
+
+    # use this when you want to resolve the subject id given the subject name
+    if not OmegaConf.has_resolver('resolve_subject_id'):
+        OmegaConf.register_new_resolver('resolve_subject_id',
+                                        lambda subject_names, subject_name:
+                                        subject_names.index(subject_name),
+                                        )
 
     if not OmegaConf.has_resolver('resolve_mocap_subjects'):
         OmegaConf.register_new_resolver('resolve_mocap_subjects',

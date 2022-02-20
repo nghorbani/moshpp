@@ -76,26 +76,27 @@ class MoSh:
         if self.cfg.moshpp.verbosity > 0:
             makepath(self.cfg.dirs.log_fname, isfile=True)
 
-            log_format = f"{self.cfg.mocap.session_name} -- {self.cfg.mocap.basename} -- " + \
+            log_format = f"{self.cfg.mocap.session_name} -- {self.cfg.mocap.basename[:-10]} -- " + \
                          (f"{self.cfg.mocap.subject_name} -- " if self.cfg.mocap.multi_subject else "") + \
                          f"{{module}}:{{function}}:{{line}} -- {{message}}"
-            logger.add(self.cfg.dirs.log_fname, format=log_format, enqueue=True)
             logger.add(sys.stdout, colorize=True, format=f"<level>{log_format}</level>", enqueue=True)
+
+            logger.add(self.cfg.dirs.log_fname, format=log_format, enqueue=True)
 
         if self.cfg.mocap.multi_subject:
             logger.info('MoCap is multi subject. Available subjects (id:name): {}'.format(
                 {sid: sname for sid, sname in enumerate(self.cfg.mocap.subject_names)}))
             logger.info(f'mocap.subject_id: {self.cfg.mocap.subject_id} is selected: {self.cfg.mocap.subject_name}')
 
-        self.stagei_fname = self.cfg.dirs.stagei_fname
-        self.stageii_fname = self.cfg.dirs.stageii_fname
+        # self.cfg.dirs.stagei_fname = self.cfg.dirs.stagei_fname
+        # self.cfg.dirs.stageii_fname = self.cfg.dirs.stageii_fname
 
         if self.cfg.moshpp.verbosity < 0: return  # this is just a status call
 
-        logger.info(f'mocap_fname: {self.cfg.mocap.fname}')
+        logger.info(f'mocap unit {self.cfg.mocap.unit}, fname: {self.cfg.mocap.fname}')
 
-        logger.info(f'stagei_fname: {self.stagei_fname}')
-        logger.info(f'stageii_fname: {self.stageii_fname}')
+        logger.info(f'stagei_fname: {self.cfg.dirs.stagei_fname}')
+        logger.info(f'stageii_fname: {self.cfg.dirs.stageii_fname}')
 
         assert osp.exists(self.cfg.surface_model.fname), \
             FileNotFoundError(f'surface_model_fname not found: {self.cfg.surface_model.fname}')
@@ -191,6 +192,46 @@ class MoSh:
                                                                                     exclude_markers=self.cfg.mocap.exclude_markers,
                                                                                     labels_map=general_labels_map)
 
+        elif frame_picker_cfg.type == 'adapted_previous_mosh_fnames':
+            '''
+                can be used to compare two mosh runs 
+                the goal is to run stage i of mosh on the same subject_session_mocap frames between two seperate mosh runns
+                it will load stagei mocap fnames and adapt the main directory, and extension to the current mocap. 
+            '''
+            logger.info(f'stagei_mocap_fnames: {stagei_mocap_fnames}')
+            assert osp.exists(
+                stagei_mocap_fnames), f'Previous stagei_mocap_fnames does not exist: {stagei_mocap_fnames}'
+            mosh_stagei = pickle.load(open(stagei_mocap_fnames, 'rb'))['stagei_debug_details']
+
+            # stagei_frames, stagei_fnames = mosh_stagei['stagei_fnames'], mosh_stagei['stagei_fnames']
+            get_file_ext = lambda f: osp.basename(f).split('.')[-1]
+            cur_mocap_ext = get_file_ext(self.cfg.mocap.fname)
+            new_stagei_fnames = [osp.join(osp.dirname(self.cfg.mocap.fname), osp.basename(f)) for f in
+                                 mosh_stagei['stagei_fnames']]
+
+            for fidx in range(len(new_stagei_fnames)):
+                new_stagei_fname = new_stagei_fnames[fidx]
+                only_fname = '_'.join(new_stagei_fname.split('_')[:-1])
+
+                if not new_stagei_fname.endswith(cur_mocap_ext):
+                    # logger.warning(
+                    #     f'mocap fname recovered from previous mosh stagei do not have the same extension ({get_file_ext(only_fname)}) as the current mocap ({cur_mocap_ext}).'
+                    #     f' Will make them the same to avoid possible conflicting units. Yet this might not be an expected behavior.')
+                    new_stagei_fnames[fidx] = new_stagei_fname.replace(f'.{get_file_ext(only_fname)}',
+                                                                       f'.{cur_mocap_ext}')
+
+                    only_fname = only_fname.replace(f'.{get_file_ext(only_fname)}', f'.{cur_mocap_ext}')
+                assert osp.exists(only_fname), f'Could not find the stage i mocap fname: {only_fname}'
+
+            stagei_frames, stagei_fnames = frame_picker.load_marker_sessions_manual(new_stagei_fnames,
+                                                                                    mocap_unit=self.cfg.mocap.unit,
+                                                                                    mocap_rotate=self.cfg.mocap.rotate,
+                                                                                    only_markers=self.cfg.mocap.only_markers,
+                                                                                    only_subjects=[
+                                                                                        self.cfg.mocap.subject_name] if self.cfg.mocap.multi_subject else None,
+                                                                                    exclude_markers=self.cfg.mocap.exclude_markers,
+                                                                                    labels_map=general_labels_map)
+
         else:
             raise ValueError(f'Wrong frame_picker value: {frame_picker_cfg.type}')
 
@@ -208,8 +249,8 @@ class MoSh:
         :return:
         """
 
-        if osp.exists(self.stagei_fname):
-            self.stagei_data = pickle.load(open(self.stagei_fname, 'rb'))
+        if osp.exists(self.cfg.dirs.stagei_fname):
+            self.stagei_data = pickle.load(open(self.cfg.dirs.stagei_fname, 'rb'))
             prev_surface_model_fname = self.stagei_data['stagei_debug_details']['cfg']['surface_model']['fname']
             assert prev_surface_model_fname == self.cfg.surface_model.fname, \
                 ValueError(
@@ -217,7 +258,7 @@ class MoSh:
                     f'({prev_surface_model_fname}) '
                     f'is different than the current surface model ({self.cfg.surface_model.type})')
 
-            logger.info(f'loading mosh stagei results from {self.stagei_fname}')
+            logger.info(f'loading mosh stagei results from {self.cfg.dirs.stagei_fname}')
         else:
             log_fname = makepath(self.cfg.dirs.stagei_fname.replace('.pkl', '.log'), isfile=True)
             log_format = "{module}:{function}:{line} -- {level} -- {message}"
@@ -237,8 +278,14 @@ class MoSh:
                                                )
                 # todo: check how many chosen markers could not be assigned to a body vertex?
 
-            logger.info(f'Attempting mosh stagei to create {self.stagei_fname}')
+            logger.info(f'Attempting mosh stagei to create {self.cfg.dirs.stagei_fname}')
             tm = time.time()
+            if self.cfg.moshpp.betas_fname and not osp.exists(
+                    self.cfg.moshpp.betas_fname) and self.cfg.surface_model.type == 'smplx':
+                logger.warning(
+                    f'moshpp.betas_fname is given yet the file could not be found. creating it: {self.cfg.moshpp.betas_fname}')
+                self.compute_smplx_shape(mosh_stagei_func)
+
             stagei_data = mosh_stagei_func(stagei_frames=stagei_frames, cfg=self.cfg,
                                            betas_fname=self.cfg.moshpp.betas_fname,
                                            v_template_fname=self.cfg.moshpp.v_template_fname)
@@ -252,29 +299,70 @@ class MoSh:
 
             stagei_data['stagei_debug_details']['stagei_elapsed_time'] = stagei_elapsed_time
 
-            pickle.dump(stagei_data, open(makepath(self.stagei_fname, isfile=True), 'wb'))
+            pickle.dump(stagei_data, open(makepath(self.cfg.dirs.stagei_fname, isfile=True), 'wb'))
 
-            logger.debug(f'created stagei_fname: {self.stagei_fname}')
+            logger.debug(f'created stagei_fname: {self.cfg.dirs.stagei_fname}')
 
             logger.debug(f'finished mosh stagei in {timedelta(seconds=stagei_elapsed_time)}')
             self.stagei_data = stagei_data
 
-            if self.cfg.dirs.write_optimized_marker_layout:
-                MoSh.dump_stagei_marker_layout(self.stagei_fname)
+            if self.cfg.dirs.marker_layout.write_optimized:
+                MoSh.dump_stagei_marker_layout(self.cfg.dirs.stagei_fname,
+                                               self.cfg.dirs.marker_layout.optimized_template_fname)
             logger.remove(stagei_logger_id)
 
-        return self.stagei_fname
+        return self.cfg.dirs.stagei_fname
+
+    def compute_smplx_shape(self, mosh_stagei_func):
+
+        cfg_backup = self.cfg.copy()
+        stagei_fname_splits = self.cfg.dirs.stagei_fname.split('/')
+        stageii_fname_splits = self.cfg.dirs.stageii_fname.split('/')
+        stagei_fname_splits.insert(-1, 'body_shape')
+        stageii_fname_splits.insert(-1, 'body_shape')
+
+        cfg_override = {
+            'dirs.work_base_dir': osp.join(self.cfg.dirs.work_base_dir, 'body_shape'),
+            'dirs.stagei_fname': '/'.join(stagei_fname_splits),
+            'dirs.stageii_fname': '/'.join(stageii_fname_splits),
+
+            'opt_settings.weights_type': 'smplx_grab_vtemplate',
+
+            'moshpp.optimize_fingers': False,
+            'moshpp.optimize_face': False,
+
+            'moshpp.optimize_toes': False,
+            'moshpp.optimize_betas': True,
+            'moshpp.separate_types': ['body', 'finger', 'face'],
+            'mocap.exclude_marker_types': ['finger', 'face', 'finger_left', 'finger_right', 'eyelids'],
+
+            'moshpp.betas_fname': None,
+        }
+
+        override_cfg_dotlist = [f'{k}={v}' if v != None else f'{k}=null' for k, v in cfg_override.items()]
+        override_cfg = OmegaConf.from_dotlist(override_cfg_dotlist)
+        self.cfg = OmegaConf.merge(self.cfg, override_cfg)
+        self.mosh_stagei(mosh_stagei_func)
+        self.cfg = cfg_backup
+        self.cfg.moshpp.optimize_betas = False
+
+        np.savez(makepath(self.cfg.moshpp.betas_fname, isfile=True),
+                 betas=self.stagei_data['betas'][:self.cfg.surface_model.num_betas])
+        logger.success(f'Created betas_fname: {self.cfg.moshpp.betas_fname}')
+        self.stagei_data = None
+        return
 
     def mosh_stageii(self, mosh_stageii_func):
         if self.stagei_data is None:
-            raise ValueError(f'stagei_fname results could not be found: {self.stagei_fname}. please run stagei first.')
+            raise ValueError(
+                f'stagei_fname results could not be found: {self.cfg.dirs.stagei_fname}. please run stagei first.')
 
-        if osp.exists(self.stageii_fname):
-            self.stageii_data = pickle.load(open(self.stageii_fname, 'rb'))
-            logger.info(f'loading mosh stageii results from {self.stageii_fname}')
+        if osp.exists(self.cfg.dirs.stageii_fname):
+            self.stageii_data = pickle.load(open(self.cfg.dirs.stageii_fname, 'rb'))
+            logger.info(f'loading mosh stageii results from {self.cfg.dirs.stageii_fname}')
 
         else:
-            logger.info(f'attempting mosh stageii to create {self.stageii_fname}')
+            logger.info(f'attempting mosh stageii to create {self.cfg.dirs.stageii_fname}')
             tm = time.time()
 
             stageii_data = mosh_stageii_func(mocap_fname=self.cfg.mocap.fname,
@@ -292,13 +380,13 @@ class MoSh:
             stageii_data['stageii_debug_details']['cfg'] = OmegaConf.to_container(self.cfg, resolve=True,
                                                                                   enum_to_str=True)
 
-            pickle.dump(stageii_data, open(makepath(self.stageii_fname, isfile=True), 'wb'))
+            pickle.dump(stageii_data, open(makepath(self.cfg.dirs.stageii_fname, isfile=True), 'wb'))
 
-            logger.debug(f'created stageii_fname: {self.stageii_fname}')
+            logger.debug(f'created stageii_fname: {self.cfg.dirs.stageii_fname}')
             logger.debug(f'finished mosh stageii in {timedelta(seconds=stageii_elapsed_time)}')
             self.stageii_data = stageii_data
 
-        return self.stageii_fname
+        return self.cfg.dirs.stageii_fname
 
     @staticmethod
     def dump_stagei_marker_layout(mosh_stagei_pkl_fname,
@@ -554,7 +642,7 @@ class MoSh:
         override_cfg_dotlist = [f'{k}={v}' if v != None else f'{k}=null' for k, v in kwargs.items()]
         override_cfg = OmegaConf.from_dotlist(override_cfg_dotlist)
 
-        dict_cfg = OmegaConf.create(dict_cfg)
+        dict_cfg = OmegaConf.create(dict_cfg) if dict_cfg and isinstance(dict_cfg, dict) else dict_cfg
 
         return OmegaConf.merge(base_cfg, override_cfg, dict_cfg)
 

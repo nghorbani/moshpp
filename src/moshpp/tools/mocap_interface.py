@@ -64,7 +64,7 @@ def write_mocap_c3d(markers: np.ndarray, labels: list, out_mocap_fname: str, fra
     writer['parameters']['POINT']['RATE']['value'] = [frame_rate]
     writer['parameters']['POINT']['LABELS']['value'] = labels
 
-    markers = markers * 1000. # meters to milimeters. a c3d file should be in mm
+    markers = markers * 1000.  # meters to milimeters. a c3d file should be in mm
 
     pts = markers
     pts_extra = np.zeros([markers.shape[0], markers.shape[1], 1])
@@ -201,18 +201,18 @@ class MocapSession(object):
             labels = [labels_map.get(l, l) for l in labels]
 
         if only_markers is not None:
-            good_labels_mask = [l in only_markers for l in labels]
-        else:
-            good_labels_mask = [True for _ in range(len(labels))]
+            labels = [l if l in only_markers else f'*{len(labels) + i:d}' for l, i in zip(labels, range(len(labels)))]
 
-            if ignore_stared_labels:
-                good_labels_mask = [good_labels_mask[i] and not labels[i].startswith('*') for i in range(len(labels))]
+        good_labels_mask = [True for _ in range(len(labels))]
 
-            if exclude_markers is not None:
-                exclude_markers = [] if exclude_markers is None else exclude_markers
+        if ignore_stared_labels:
+            good_labels_mask = [good_labels_mask[i] and not labels[i].startswith('*') for i in range(len(labels))]
 
-                good_labels_mask = [good_labels_mask[i] and labels[i] not in exclude_markers for i in
-                                    range(len(labels))]
+        if exclude_markers is not None:
+            exclude_markers = [] if exclude_markers is None else exclude_markers
+
+            good_labels_mask = [good_labels_mask[i] and labels[i] not in exclude_markers for i in
+                                range(len(labels))]
 
         labels = [l for l, valid in zip(labels, good_labels_mask) if valid]
         subject_mask = {k: v[good_labels_mask] for k, v in mocap_read['subject_mask'].items()}
@@ -230,7 +230,7 @@ class MocapSession(object):
         if only_subjects:
             if not np.all([s in subject_names for s in only_subjects]):
                 logger.error(
-                    f'subject names {only_subjects} not available in mocap. available subjects: {subject_names}')
+                    f'only_subjects {only_subjects} not available in available mocap subjects: {subject_names}')
                 return None
             selected_subjects_mask = np.zeros(markers.shape[1], dtype=bool)
             for s in only_subjects:
@@ -251,6 +251,7 @@ class MocapSession(object):
         frame_rate = mocap_read.get('frame_rate', 120.)
         self.frame_rate = 120. if frame_rate is None else frame_rate
         self.read_status = True
+
     def markers_asdict(self) -> List[Dict[str, np.ndarray]]:
         """
         Returns list of dictionaries. Each dictionary contains the labels & markers for consecutive frames of the capture session in the form:
@@ -366,35 +367,3 @@ class MocapSession(object):
             if delay > 0: time.sleep(delay)
 
             mv.titlebar = f'Frame {fIdx:d}/{len(mrkr_frames):d}'
-
-
-if __name__ == '__main__':
-    # mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/61/61_01.c3d'
-    mocap_fname = '/ps/project/amass/MOCAP/CMU/c3d/subjects/60/60_01.c3d'
-    # mocap_fname = '/ps/project/common/moshpp/animal_rat/correct_rat.c3d'
-    # out_mocap_fname = mocap_fname.replace('.pkl', '.c3d')
-    # out_mocap_fname = '/is/cluster/scratch/soma/training_experiments/V48_02_MPI124/OC_05_G_03_real_000_synt_100/evaluations/soma_labeled_mocap_tracklet/ASL_Unlabeled/210805_03586/aa.pkl'
-
-    mocap = MocapSession(mocap_fname, mocap_unit='mm', ignore_stared_labels=False)  # , mocap_rotate=[90,0,0])
-    a = mocap.markers_asdict()
-    print(a[0])
-    print(mocap.markers.shape)
-    print(len(mocap.labels), mocap.labels)
-    print(mocap.frame_rate)
-    print(mocap.time_length())
-    print({k: sum(v) for k, v in mocap.subject_mask.items()})
-    # #
-    # # pickle.dump({'frame_rate':mocap.frame_rate, 'markers':mocap.markers*1000., 'labels':mocap.labels},
-    # #             open(out_mocap_fname,'wb'))
-    # #
-    # # # print(mocap._marker_data['labels_perframe'])
-    mocap.play_mocap_trajectories(radius=0.005, delay=100)
-    # write_mocap_c3d(
-    #     markers= mocap.markers*1000,#[:100],
-    #     labels=mocap.labels,
-    #     frame_rate=mocap.frame_rate,
-    #     out_c3d_fname=out_mocap_fname
-    # )
-    # mocap = MocapSession(out_mocap_fname, mocap_unit='mm', ignore_stared_labels=False)
-    #
-    # # mocap.play_mocap_trajectories(radius=0.003)
