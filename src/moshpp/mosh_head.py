@@ -317,14 +317,12 @@ class MoSh:
 
         cfg_backup = self.cfg.copy()
         stagei_fname_splits = self.cfg.dirs.stagei_fname.split('/')
-        stageii_fname_splits = self.cfg.dirs.stageii_fname.split('/')
         stagei_fname_splits.insert(-1, 'body_shape')
-        stageii_fname_splits.insert(-1, 'body_shape')
 
         cfg_override = {
             'dirs.work_base_dir': osp.join(self.cfg.dirs.work_base_dir, 'body_shape'),
             'dirs.stagei_fname': '/'.join(stagei_fname_splits),
-            'dirs.stageii_fname': '/'.join(stageii_fname_splits),
+            'dirs.stageii_fname': None,
 
             'opt_settings.weights_type': 'smplx_grab_vtemplate',
 
@@ -579,7 +577,7 @@ class MoSh:
         if 'v_template' in stageii_pkl_data['stagei_debug_details']:
             stageii_npz_data['v_template'] = stageii_pkl_data['stagei_debug_details']['v_template']
 
-        if cfg.moshpp.optimize_betas:
+        if 'betas' in stageii_pkl_data:#cfg.moshpp.optimize_betas:
             stageii_npz_data['betas'] = stageii_pkl_data['betas'][:cfg['surface_model']['num_betas']]
             stageii_npz_data['num_betas'] = cfg['surface_model']['num_betas']
 

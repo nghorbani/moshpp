@@ -3,7 +3,7 @@ mocap:
   ds_name: ${resolve_mocap_ds_name:${mocap.fname}}
   # we use id instead of direct names to avoid knowing the subject name beforehand
   # by default -1 to ignore th subject label
-  subject_id: -1 # ignore subject id when -1
+  subject_id: -1 # ignore subject id when -1. this forces a single subject run
   subject_names: ${resolve_mocap_subjects:${mocap.fname}}
   # only one subject can be processed at a time
   subject_name: ${resolve_subject_name:${mocap.subject_names},${mocap.subject_id}}
@@ -47,7 +47,7 @@ moshpp:
   optimize_dynamics: false
 
   v_template_fname: #v_template to be used for the surface model
-  betas_fname:
+  betas_fname: # passing a non existing betas_fname would start an extra stagei run to evaluate body shape with only body markers
 
   separate_types:
     - body
@@ -63,6 +63,7 @@ moshpp:
 
   verbosity: 1
   visualization:
+    keep_alive: false
     marker_radius:
       body: 0.009
       face: 0.004
@@ -75,17 +76,13 @@ dirs:
   work_base_dir: ???
   session_subject_subfolders: ${ifelse:${mocap.multi_subject}, ${mocap.session_name}/${mocap.subject_name}, ${mocap.session_name}}
 
-  write_optimized_marker_layout: true
   marker_layout:
     basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.type}, ${mocap.ds_name}_${surface_model.type}}
     fname: ${dirs.work_base_dir}/${mocap.ds_name}/${ifelse:${moshpp.perseq_mosh_stagei},${dirs.session_subject_subfolders}/${dirs.marker_layout.basename}.json,${dirs.marker_layout.basename}.json}
   #    has_finger: ${has_finger:${dirs.marker_layout.fname}, ${mocap.exclude_markers}, ${mocap.exclude_marker_types},${mocap.only_markers}}
   #    has_face: ${has_finger:${dirs.marker_layout.fname}, ${mocap.exclude_markers}, ${mocap.exclude_marker_types},${mocap.only_markers}}
-
-  markerlyout_basename: ${oc.deprecated:dirs.marker_layout.basename}
-
-  marker_layout_fname: ${oc.deprecated:dirs.marker_layout.fname}
-
+    optimized_template_fname: # when this file is given only the finetuned vertex of these labels wilbe dumped
+    write_optimized: true
   stagei_basename: ${ifelse:${moshpp.perseq_mosh_stagei}, ${mocap.basename}_${surface_model.gender}, ${surface_model.gender}}
 
   stagei_fname: ${dirs.work_base_dir}/${mocap.ds_name}/${dirs.session_subject_subfolders}/${dirs.stagei_basename}_stagei.pkl
@@ -174,3 +171,4 @@ opt_weights:
 
 runtime:
   stagei_only: False
+  compute_shape_first: False

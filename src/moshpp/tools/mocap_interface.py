@@ -192,7 +192,7 @@ class MocapSession(object):
         mocap_read = read_mocap(mocap_fname)
         self._marker_data = mocap_read['_marker_data']  # this is used for SOMA evaluation to get per frame labels
 
-        labels = [l.replace(' ', '') for l in mocap_read['labels']]
+        labels = [l.replace(' ', '') for l in mocap_read['labels']]# remove space in labels
 
         labels = np.vstack(labels).ravel()
         if remove_label_before_colon:
