@@ -38,13 +38,13 @@ import os
 import chumpy as ch
 import numpy as np
 from chumpy import Ch
-from human_body_prior.tools.omni_tools import get_support_data_dir
 from sklearn.neighbors import NearestNeighbors
 
+from .tools.run_tools import get_support_data_dir
 
 class TransformedCoeffs(Ch):
     dterms = 'can_body', 'markers_latent'
-    support_base_dir = get_support_data_dir(__file__)
+    support_base_dir = get_support_data_dir()
     smplx_eyebals_path = os.path.join(support_base_dir, 'smplx_eyeballs.npz')
     no_eye_ball_vids = list(
         set(np.arange(10474).tolist()).difference(set(np.load(smplx_eyebals_path)['eyeballs'].tolist())))

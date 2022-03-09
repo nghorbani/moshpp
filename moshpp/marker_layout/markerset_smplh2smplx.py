@@ -35,11 +35,11 @@ import os.path as osp
 from typing import Union
 
 import numpy as np
-from human_body_prior.tools.omni_tools import get_support_data_dir
+from ..tools.run_tools import get_support_data_dir
 
 
 def smplh2smplx(vids: Union[list, str]) -> Union[list, str]:
-    support_dir = get_support_data_dir(__file__)
+    support_dir = get_support_data_dir()
 
     smplh2smplx = np.load(osp.join(support_dir, 'smplx_fit2_smplh.npz'))['smh2smhf']
     if isinstance(vids, int):
@@ -48,7 +48,7 @@ def smplh2smplx(vids: Union[list, str]) -> Union[list, str]:
 
 
 def marker_meta_smplh2smplx(smplh_marker_meta: dict) -> dict:
-    support_dir = get_support_data_dir(__file__)
+    support_dir = get_support_data_dir()
     smplh2smplx = np.load(osp.join(support_dir, 'smplx_fit2_smplh.npz'))['smh2smhf']
 
     assert smplh_marker_meta.get('model_type', 'smplh') == 'smplh', ValueError(
@@ -58,7 +58,8 @@ def marker_meta_smplh2smplx(smplh_marker_meta: dict) -> dict:
     for mrk_set in smplh_marker_meta['markersets']:
         new_mrkset = {}
         for k, v in mrk_set.items():
-            if k == 'indices': continue
+            if k == 'indices':
+                continue
             new_mrkset[k] = v
         new_indices = {}
         for k, v in mrk_set['indices'].items():
@@ -74,12 +75,13 @@ def marker_meta_smplh2smplx(smplh_marker_meta: dict) -> dict:
     # with open(smplx_marker_layout_fname, 'w') as f:
     #     json.dump(smplx_marker_meta, f, sort_keys=True, indent=4, separators=(',', ': '))
     # print('created {}'.format(smplx_marker_layout_fname))
-    # return {'smplx_marker_meta': smplx_marker_meta, 'smplx_marker_layout_fname': smplx_marker_layout_fname}
+    # return {'smplx_marker_meta': smplx_marker_meta,
+    # 'smplx_marker_layout_fname': smplx_marker_layout_fname}
     return smplx_marker_meta
 
 
 def marker_meta_smplx2smplh(smplx_marker_meta: dict) -> dict:
-    support_dir = get_support_data_dir(__file__)
+    support_dir = get_support_data_dir()
 
     smplx2smplh = np.load(osp.join(support_dir, 'smplx_fit2_smplh.npz'))['smhf2smh']
 

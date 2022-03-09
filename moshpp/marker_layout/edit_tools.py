@@ -62,8 +62,8 @@ else:
 
 from typing import Dict
 from pytorch3d.structures import Meshes
-from human_body_prior.tools.omni_tools import get_support_data_dir
 
+from moshpp.tools.run_tools import get_support_data_dir
 
 class Markerlayout(TypedDict):
     marker_vids: OrderedDictType[str, int]
@@ -108,9 +108,12 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
     assert marker_layout_fname.endswith('.json')
     assert osp.exists(marker_layout_fname), FileNotFoundError(marker_layout_fname)
 
-    if only_markers is None: only_markers = []
-    if exclude_markers is None: exclude_markers = []
-    if exclude_marker_types is None: exclude_marker_types = []
+    if only_markers is None:
+        only_markers = []
+    if exclude_markers is None:
+        exclude_markers = []
+    if exclude_marker_types is None:
+        exclude_marker_types = []
 
     with open(marker_layout_fname) as f:
         d = json.load(f)
@@ -138,21 +141,25 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
         if marker_type in exclude_marker_types:
             logger.debug(f'excluding marker_type {marker_type}')
             continue
-        if marker_type in m2b_distance: raise ValueError(
-            f'Marker type appears in multiple occasions: {markerset["type"]}!')
+        if marker_type in m2b_distance:
+            raise ValueError(
+                f'Marker type appears in multiple occasions: {markerset["type"]}!')
         m2b_distance[marker_type] = markerset.get('distance_from_skin', 0.0095)
         cur_marker_vids = markerset['indices']
         if labels_map:
             cur_marker_vids = {labels_map.get(k, k): cur_marker_vids[k] for k in cur_marker_vids}
 
         for label in sorted(cur_marker_vids):
-            if only_markers and label not in only_markers: continue
+            if only_markers and label not in only_markers:
+                continue
             if label in exclude_markers:
                 logger.debug(f'excluding label {label}')
             vid = cur_marker_vids[label]
-            if label in marker_vids: raise ValueError(f'Label ({label}) is present in multiple occasions.')
+            if label in marker_vids:
+                raise ValueError(f'Label ({label}) is present in multiple occasions.')
             marker_vids[label] = vid
-            if markerset['type'] not in marker_types: marker_types[markerset['type']] = []
+            if markerset['type'] not in marker_types:
+                marker_types[markerset['type']] = []
             if labels_map:
                 marker_types[markerset['type']].append(labels_map.get(label, label))
             else:
@@ -163,7 +170,8 @@ def marker_layout_load(marker_layout_fname: Union[str, Path],
     marker_colors = OrderedDict(
         {k: v.get_rgb() for k, v in zip(marker_vids, list(Color('red').range_to(Color('blue'), len(marker_vids))))})
 
-    if include_nan: marker_colors['nan'] = [0.83, 1, 0]  # yellow green
+    if include_nan:
+        marker_colors['nan'] = [0.83, 1, 0]  # yellow green
 
     marker_type = OrderedDict()
     for lid, l in enumerate(marker_vids):
@@ -235,7 +243,8 @@ def merge_marker_layouts(marker_layout_fnames: List[Union[str, Path]],
     assert len(marker_layout_fnames) != 0
 
     if out_fname is None or not os.path.exists(out_fname):
-        logger.debug(f'Merging #{len(marker_layout_fnames)} marker layouts: {marker_layout_fnames}.')
+        logger.debug(
+            f'Merging #{len(marker_layout_fnames)} marker layouts: {marker_layout_fnames}.')
     else:
         logger.debug(f'Superset file already exists at {out_fname}')
         return marker_layout_load(out_fname, labels_map=general_labels_map)
@@ -248,14 +257,18 @@ def merge_marker_layouts(marker_layout_fnames: List[Union[str, Path]],
         surface_model_types[marker_layout_fname] = marker_meta['surface_model_type']
         for marker_type, marker_mask in marker_meta['marker_type_mask'].items():
             # if marker_type != 'body': raise ValueError(marker_layout_fname)
-            if marker_type not in marker_vids: marker_vids[marker_type] = {}
+            if marker_type not in marker_vids:
+                marker_vids[marker_type] = {}
             for k, v, is_in_marker_type in zip(marker_meta['marker_vids'].keys(),
                                                marker_meta['marker_vids'].values(),
                                                marker_mask):
-                if not is_in_marker_type: continue
-                if k not in marker_vids[marker_type]: marker_vids[marker_type][k] = []
+                if not is_in_marker_type:
+                    continue
+                if k not in marker_vids[marker_type]:
+                    marker_vids[marker_type][k] = []
                 marker_vids[marker_type][k].append(v)
-            if marker_type in m2b_distance: assert m2b_distance[marker_type] == marker_meta['m2b_distance'][marker_type]
+            if marker_type in m2b_distance:
+                assert m2b_distance[marker_type] == marker_meta['m2b_distance'][marker_type]
             m2b_distance[marker_type] = marker_meta['m2b_distance'][marker_type]
 
     assert len(set(surface_model_types.values())) == 1, ValueError(
@@ -293,15 +306,21 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
     marker_radius = {'body': 0.009, 'face': 0.004, 'finger': 0.005}
 
     if ceasar_pose:
-        support_base_dir = get_support_data_dir(__file__)
+        support_base_dir = get_support_data_dir()
         pose_body = np.load(osp.join(support_base_dir, 'smplx_APose.npz'))['pose_body']
         pose_body_pt = torch.from_numpy(pose_body.reshape(1, -1)).type(torch.float)
         body_parms = {'pose_body': pose_body_pt}
 
-    bm = BodyModel(surface_model_fname, num_betas=body_parms.get('num_betas', 10), model_type=surface_model_type)
+    bm = BodyModel(
+        surface_model_fname,
+        num_betas=body_parms.get(
+            'num_betas',
+            10),
+        model_type=surface_model_type)
     body = bm(**body_parms)
 
-    dtvn = c2c(Meshes(verts=body.v, faces=body.f.expand(len(body.v), -1, -1)).verts_normals_packed())
+    dtvn = c2c(Meshes(verts=body.v, faces=body.f.expand(
+        len(body.v), -1, -1)).verts_normals_packed())
 
     verts = c2c(body.v[0])
     faces = c2c(body.f)
@@ -333,7 +352,8 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
 
         if marker_colors is not None:
             for l in marker_meta['marker_colors']:
-                if l not in marker_colors: raise ValueError(f'No color available in marker_colors for label: {l}')
+                if l not in marker_colors:
+                    raise ValueError(f'No color available in marker_colors for label: {l}')
 
         marker_m2b = np.ones(len(marker_meta['marker_vids'])) * 0.0095
         marker_radi = np.ones(len(marker_meta['marker_vids'])) * marker_radius['body']
@@ -357,7 +377,8 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
         markers = verts[body_vids] + dtvn[body_vids] * np.array(marker_m2b)[:, None]
 
         if preserve_vertex_order:
-            markers_mesh = points_to_spheres(markers, point_color=np.array(marker_colors), radius=marker_radi)
+            markers_mesh = points_to_spheres(
+                markers, point_color=np.array(marker_colors), radius=marker_radi)
             body_mrk_mesh = body_mesh.concatenate_mesh(markers_mesh)
         else:
             markers_mesh = points_to_spheres(markers, point_color=marker_colors, radius=marker_radi)
@@ -367,18 +388,26 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
                 'body_mesh_unrotated': body_mesh,
                 'markers_mesh_unrotated': markers_mesh,
             })
-            body_mrk_mesh.apply_transform(trimesh.transformations.rotation_matrix(np.radians(90), (1, 0, 0)))
-            markers_mesh.apply_transform(trimesh.transformations.rotation_matrix(np.radians(90), (1, 0, 0)))
-            body_mesh.apply_transform(trimesh.transformations.rotation_matrix(np.radians(90), (1, 0, 0)))
+            body_mrk_mesh.apply_transform(
+                trimesh.transformations.rotation_matrix(
+                    np.radians(90), (1, 0, 0)))
+            markers_mesh.apply_transform(
+                trimesh.transformations.rotation_matrix(
+                    np.radians(90), (1, 0, 0)))
+            body_mesh.apply_transform(
+                trimesh.transformations.rotation_matrix(
+                    np.radians(90), (1, 0, 0)))
 
         if out_fname is not None:
-            assert out_fname.endswith('.ply'), ValueError(f'out_fname should be a valid ply file: {out_fname}')
+            assert out_fname.endswith('.ply'), ValueError(
+                f'out_fname should be a valid ply file: {out_fname}')
             if preserve_vertex_order:
                 body_mrk_mesh.write_ply(out_fname)
             else:
                 body_mrk_mesh.export(out_fname)
                 import sys
-                sys.stderr.write('Mesh exported via Trimesh. Export does not preserve vertex orders!!!!!\n')
+                sys.stderr.write(
+                    'Mesh exported via Trimesh. Export does not preserve vertex orders!!!!!\n')
 
         output.update({
             'body_marker_mesh': body_mrk_mesh,
@@ -390,7 +419,8 @@ def marker_layout_as_mesh(surface_model_fname: Union[str, Path],
     return as_mesh
 
 
-def marker_layout_to_c3d(marker_layout_fname, surface_model_fname,surface_model_type= None , out_c3d_fname=None):
+def marker_layout_to_c3d(marker_layout_fname, surface_model_fname,
+                         surface_model_type=None, out_c3d_fname=None):
     """
     This function enables investigating a marker layout in c3d software such as Mokka
     Args:
@@ -403,9 +433,11 @@ def marker_layout_to_c3d(marker_layout_fname, surface_model_fname,surface_model_
     """
     if out_c3d_fname is None:
         out_c3d_fname = marker_layout_fname.replace('.json', '.c3d')
-    assert out_c3d_fname.endswith('.c3d'), ValueError(f'out_c3d_fname should be a valid c3d file {out_c3d_fname}')
+    assert out_c3d_fname.endswith('.c3d'), ValueError(
+        f'out_c3d_fname should be a valid c3d file {out_c3d_fname}')
 
-    mocap = marker_layout_as_mesh(surface_model_fname, surface_model_type=surface_model_type)(marker_layout_fname)
+    mocap = marker_layout_as_mesh(surface_model_fname,
+                                  surface_model_type=surface_model_type)(marker_layout_fname)
     markers = mocap['markers'] + [0, 1.3, 0]
     markers = rotate_points_xyz(markers[None], np.array([90, 0, 0])[None])
     markers = np.repeat(markers, repeats=100, axis=0)
@@ -436,7 +468,8 @@ def find_vertex_neighbours(surface_model_fname):
             list of integers
 
         """
-        if n_ring == 0: return [vid]  # randomiztion is disabled
+        if n_ring == 0:
+            return [vid]  # randomiztion is disabled
         neighbors = [(np.arange(A.shape[0])[A[vid] > 0]).tolist()]
         for _ in range(n_ring - 1):
             new_neighbors = []
@@ -506,15 +539,22 @@ def randomize_marker_layout_vids(marker_vids,
             vid_neighbours = {k: flatten_list([v_neighbors(vid, n_ring=n_ring) for vid in vids]) + vids for k, vids in
                               marker_vids.items()}
         else:
-            assert 'body' in marker_type_mask, ValueError(f'body not available marker_types: {marker_type_mask.keys()}')
+            assert 'body' in marker_type_mask, ValueError(
+                f'body not available marker_types: {marker_type_mask.keys()}')
             vid_neighbours = {
                 k: flatten_list([v_neighbors(vid, n_ring=n_ring) for vid in vids]) + vids if isbody else vids for
                 (k, vids), isbody in zip(marker_vids.items(), marker_type_mask['body'])}
     else:
         if enable_rnd_vid_on_face_hands:
-            vid_neighbours = {k: v_neighbors(vid, n_ring=n_ring) + [vid] for k, vid in marker_vids.items()}
+            vid_neighbours = {
+                k: v_neighbors(
+                    vid,
+                    n_ring=n_ring) +
+                [vid] for k,
+                vid in marker_vids.items()}
         else:
-            assert 'body' in marker_type_mask, ValueError(f'body not available marker_types: {marker_type_mask.keys()}')
+            assert 'body' in marker_type_mask, ValueError(
+                f'body not available marker_types: {marker_type_mask.keys()}')
             vid_neighbours = {k: v_neighbors(vid, n_ring=n_ring) + [vid] if isbody else [vid] for (k, vid), isbody in
                               zip(marker_vids.items(), marker_type_mask['body'])}
 
@@ -525,4 +565,3 @@ def randomize_marker_layout_vids(marker_vids,
         return new_marker_vids
 
     return get_next
-
