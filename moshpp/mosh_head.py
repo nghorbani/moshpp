@@ -46,7 +46,6 @@ from typing import Union
 import numpy as np
 import torch
 from human_body_prior.tools.omni_tools import flatten_list
-from human_body_prior.tools.omni_tools import get_support_data_dir
 from human_body_prior.tools.omni_tools import makepath
 from loguru import logger
 from omegaconf import DictConfig
@@ -60,6 +59,8 @@ from moshpp.marker_layout.edit_tools import marker_layout_to_c3d
 from moshpp.marker_layout.edit_tools import marker_layout_write
 from moshpp.marker_layout.labels_map import general_labels_map
 from moshpp.tools.run_tools import turn_fullpose_into_parts, setup_mosh_omegaconf_resolvers
+
+from .tools.run_tools import get_support_data_dir
 
 
 class MoSh:

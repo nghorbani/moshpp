@@ -41,6 +41,15 @@ from omegaconf import OmegaConf
 
 from moshpp.tools.mocap_interface import MocapSession
 
+import pkg_resources
+
+def get_support_data_dir(*args, **kwargs):
+
+    support_data_dir = osp.abspath(
+        pkg_resources.resource_filename('moshpp', 'support_data')
+    )
+    assert osp.exists(support_data_dir)
+    return support_data_dir
 
 def universal_mosh_jobs_filter(total_jobs, only_stagei=False, determine_shape_for_each_seq=False):
     from moshpp.mosh_head import MoSh
