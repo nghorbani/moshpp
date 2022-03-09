@@ -115,7 +115,7 @@ def resolve_mosh_subject_gender(mocap_fname, fall_back_gender='error', subject_n
 
             raise FileNotFoundError(
                 f'The gender of subject "{subject_name}" could not be determined from the settings file {gender_fname}'
-                if multi_subject else f'gender settings not found {gender_fname}')
+                if multi_subject else f'gender settings not found {gender_fname} -- {subject_name}')
         else:
             return fall_back_gender
 

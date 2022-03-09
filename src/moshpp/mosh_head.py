@@ -252,11 +252,11 @@ class MoSh:
         if osp.exists(self.cfg.dirs.stagei_fname):
             self.stagei_data = pickle.load(open(self.cfg.dirs.stagei_fname, 'rb'))
             prev_surface_model_fname = self.stagei_data['stagei_debug_details']['cfg']['surface_model']['fname']
-            assert prev_surface_model_fname == self.cfg.surface_model.fname, \
-                ValueError(
+            if prev_surface_model_fname != self.cfg.surface_model.fname:
+                logger.error(
                     f'The surface_model_fname used for previous stagei '
                     f'({prev_surface_model_fname}) '
-                    f'is different than the current surface model ({self.cfg.surface_model.type})')
+                    f'is different than the current surface model ({self.cfg.surface_model.fname})')
 
             logger.info(f'loading mosh stagei results from {self.cfg.dirs.stagei_fname}')
         else:

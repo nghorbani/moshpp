@@ -198,7 +198,13 @@ class MocapSession(object):
         if remove_label_before_colon:
             labels = [l.split(':')[-1] for l in labels]
         if labels_map is not None:
-            labels = [labels_map.get(l, l) for l in labels]
+            new_labels = []
+            for l in labels:
+                l_splits = l.split(':') # seperate the subject name before mapping
+                l_splits[-1] = labels_map.get(l_splits[-1], l_splits[-1])
+                new_labels.append(':'.join(l_splits))
+            labels = new_labels
+            # labels = [labels_map.get(l, l) for l in labels]
 
         if only_markers is not None:
             labels = [l if l in only_markers else f'*{len(labels) + i:d}' for l, i in zip(labels, range(len(labels)))]
@@ -304,7 +310,7 @@ class MocapSession(object):
         np.savez(out_npz_fname, markers=self.markers, labels=self.labels, frame_rate=self.frame_rate)
 
     def play_mocap_trajectories(self, start_fidx: int = 0, end_fidx: int = -1, ds_rate: int = 1, radius: float = 0.01,
-                                delay: int = 0., mocap_rotate=None):
+                                delay: int = 0., mocap_rotate=None, keep_alive=False):
         """
         Visualize the trajectory of markers in 3D.
 
@@ -342,7 +348,7 @@ class MocapSession(object):
         mrkr_frames = self.markers[start_fidx:end_fidx:ds_rate, :, :].copy()
         mrkr_frames = rotate_points_xyz(mrkr_frames, rot).reshape(mrkr_frames.shape)
 
-        mv = MeshViewer(keepalive=False)
+        mv = MeshViewer(keepalive=keep_alive)
         mv.set_background_color(colors['white'])
         mrkr_colors = grey  # Default grey
 
