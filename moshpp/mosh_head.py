@@ -302,7 +302,7 @@ class MoSh:
 
             pickle.dump(stagei_data, open(makepath(self.cfg.dirs.stagei_fname, isfile=True), 'wb'))
 
-            logger.debug(f'created stagei_fname: {self.cfg.dirs.stagei_fname}')
+            logger.success(f'created stagei_fname: {self.cfg.dirs.stagei_fname}')
 
             logger.debug(f'finished mosh stagei in {timedelta(seconds=stagei_elapsed_time)}')
             self.stagei_data = stagei_data
@@ -381,7 +381,7 @@ class MoSh:
 
             pickle.dump(stageii_data, open(makepath(self.cfg.dirs.stageii_fname, isfile=True), 'wb'))
 
-            logger.debug(f'created stageii_fname: {self.cfg.dirs.stageii_fname}')
+            logger.success(f'created stageii_fname: {self.cfg.dirs.stageii_fname}')
             logger.debug(f'finished mosh stageii in {timedelta(seconds=stageii_elapsed_time)}')
             self.stageii_data = stageii_data
 

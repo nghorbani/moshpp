@@ -211,3 +211,6 @@ def load_marker_sessions_random_strict(mocap_fnames: List[str], mocap_unit: str,
     all_fnames = np.array(list(fname_frame_to_markers.keys()))[ids]
 
     return all_frames, all_fnames
+    #Todo: I have noticed a possible bug: for SAMP SMPLH gendered fits even with random_strict 100% some frames lack markers
+    #session_201208 --  -- chmosh:mosh_stagei:217 -- Number of available markers in each stagei selected frames: (F00, 71), (F01, 71), (F02, 71), (F03, 71), (F04, 65), (F05, 71), (F06, 71), (F07, 71), (F08, 71), (F09, 71), (F10, 71), (F11, 71)
+

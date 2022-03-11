@@ -117,11 +117,16 @@ def mosh_stagei(stagei_frames: List[Dict[str, np.ndarray]], cfg: DictConfig,
         logger.info('Setting moshpp.optimize_face to False')
         cfg.moshpp.optimize_face = False
 
+
+    existing_labels = list(set([l for frame in stagei_frames for l in frame.keys()]))
+
+    only_markers = cfg.mocap.only_markers + existing_labels if cfg.mocap.only_markers else existing_labels
+
     logger.info(f'using marker_layout_fname: {cfg.dirs.marker_layout.fname}')
     marker_meta = marker_layout_load(cfg.dirs.marker_layout.fname, include_nan=True,
                                      exclude_markers=cfg.mocap.exclude_markers,
                                      exclude_marker_types=cfg.mocap.exclude_marker_types,
-                                     only_markers=cfg.mocap.only_markers, labels_map=general_labels_map)
+                                     only_markers=only_markers, labels_map=general_labels_map)
 
     avail_labels = list(set([k for l in stagei_frames for k in list(l.keys())]))
     for body_part, cfg_key in {'finger': 'optimize_fingers', 'face': 'optimize_face'}.items():
