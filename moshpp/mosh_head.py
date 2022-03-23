@@ -325,8 +325,9 @@ class MoSh:
             'dirs.stagei_fname': '/'.join(stagei_fname_splits),
             'dirs.stageii_fname': None,
 
-            'opt_settings.weights_type': 'smplx_grab_vtemplate',
-
+            'opt_settings.weights_type': 'smplh',
+            # 'opt_settings.weights_type': 'smplx_grab_vtemplate',
+            
             'moshpp.optimize_fingers': False,
             'moshpp.optimize_face': False,
 
