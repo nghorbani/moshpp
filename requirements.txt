@@ -1,9 +1,20 @@
+# MoSh++ dependencies. Python 3.10 is the newest version chumpy supports.
+# Install chumpy first (its setup.py needs pip present, which pip's isolated build environment lacks):
+#   pip install "numpy<1.24" "cython<3"
+#   pip install --no-build-isolation chumpy
+# then: pip install -r requirements.txt
+# psbody.mesh (https://github.com/MPI-IS/mesh) and the smpl-fast-derivatives (psbody.smpl, from the SOMA
+# download portal) are separate steps, see the README.
 git+https://github.com/nghorbani/human_body_prior.git@SOMA
-chumpy
+# body_visualizer newer than this commit requires Python 3.11.
+git+https://github.com/nghorbani/body_visualizer.git@5d0ac4615f32563f5dbd2f09c24aee75e3ae62ff
+trimesh
+torch
+omegaconf
+ezc3d
 opencv-python
 matplotlib
-sklearn
-numpy
+scikit-learn
+numpy<1.24
 loguru
-cython==0.29
-
+cython<3

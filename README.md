@@ -1,5 +1,7 @@
 # MoSh++
 
+**Status (2026-09-17):** research code released with AMASS (ICCV 2019); not under active development. Issues are read; fixes are not promised.
+
 This repository contains the official chumpy implementation of mocap body solver used for AMASS:
 
 AMASS: Archive of Motion Capture as Surface Shapes\
@@ -27,27 +29,37 @@ The current MoSh++ code works with the following models:
 
 ## Installation
 
+MoSh++ is a chumpy implementation, and chumpy runs on Python 3.10 at the newest (it uses APIs removed in
+3.11 and needs numpy below 1.24). This package is assumed to be used along with
+[SOMA](https://github.com/nghorbani/soma), the mocap auto-labeling package; install it inside the same
+environment.
 
-The Current repository requires Python 3.7 and chumpy; a CPU based auto-differentiation package.
-This package is assumed to be used along with [SOMA](https://github.com/nghorbani/soma), the mocap auto-labeling package.
-Please install MoSh++ inside the conda environment of SOMA.
-Clone the moshpp repository, and run the following from the root directory:
+1. Create a Python 3.10 environment and install chumpy first (its setup needs pip present, which pip's
+   isolated build environment does not provide):
+   ```
+   pip install "numpy<1.24" "cython<3"
+   pip install --no-build-isolation chumpy
+   ```
+2. Install the remaining dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Install `psbody.mesh` following [MPI-IS/mesh](https://github.com/MPI-IS/mesh) (needs a C++ compiler
+   and Boost) and the precompiled smpl-fast-derivatives (`psbody.smpl`) from the
+   [SOMA download portal](https://soma.is.tue.mpg.de/), as described in the SOMA README.
+4. Build the scan-to-mesh distance extension and install MoSh++:
+   ```
+   sudo apt install libtbb-dev libeigen3-dev
+   cd src/moshpp/scan2mesh
+   pip install -r requirements.txt
+   cd mesh_distance
+   make
+   cd ../../../..
+   python setup.py install
+   ```
 
-```
-sudo apt install libtbb-dev
-
-pip install -r requirements.txt
-
-cd src/moshpp/scan2mesh
-sudo apt install libeigen3-dev
-pip install -r requirements.txt
-2. sudo apt install libtbb-dev
-cd mesh_distance
-make
-
-cd ../../../..
-python setup.py install
-```
+Verified on 2026-09-17: steps 1 and 2 in a fresh Python 3.10 venv, and every package in
+`requirements.txt` imports; `import moshpp` additionally needs step 3.
 
 ## Tutorials
 This repository is a complementary package to [SOMA](https://soma.is.tue.mpg.de/), an automatic mocap solver.
